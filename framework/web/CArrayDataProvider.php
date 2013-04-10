@@ -51,6 +51,7 @@ class CArrayDataProvider extends CDataProvider
 	 * @var string the name of key field. Defaults to 'id'.
 	 */
 	public $keyField='id';
+	public $modelClass;
 	/**
 	 * @var array the data that is not paginated or sorted. When pagination is enabled,
 	 * this property usually contains more elements than {@link data}.
