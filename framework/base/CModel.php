@@ -306,6 +306,16 @@ abstract class CModel extends CComponent implements IteratorAggregate, ArrayAcce
 		return false;
 	}
 
+	public function isAttributeRequiredTogether($attribute)
+	{
+		foreach($this->getValidators($attribute) as $validator)
+		{
+			if($validator instanceof requiredTogether)
+				return true;
+		}
+		return false;
+	}
+
 	/**
 	 * Returns a value indicating whether the attribute is safe for massive assignments.
 	 * @param string $attribute attribute name

@@ -38,16 +38,19 @@ class CHtml
 	 * @see label
 	 */
 	public static $requiredCss='required';
+	public static $togetherCss='together';
 	/**
 	 * @var string the HTML code to be prepended to the required label.
 	 * @see label
 	 */
 	public static $beforeRequiredLabel='';
+	public static $beforeTogetherLabel='';
 	/**
 	 * @var string the HTML code to be appended to the required label.
 	 * @see label
 	 */
 	public static $afterRequiredLabel=' <span class="required">*</span>';
+	public static $afterTogetherLabel=' <span class="requiredsame">*</span>';
 	/**
 	 * @var integer the counter for generating automatic input field names.
 	 * @since 1.0.4
@@ -511,7 +514,7 @@ class CHtml
 			unset($htmlOptions['for']);
 		else
 			$htmlOptions['for']=$for;
-		if(isset($htmlOptions['required']))
+		if(isset($htmlOptions['required']) || isset($htmlOptions['together']) )
 		{
 			if($htmlOptions['required'])
 			{
@@ -520,8 +523,17 @@ class CHtml
 				else
 					$htmlOptions['class']=self::$requiredCss;
 				$label=self::$beforeRequiredLabel.$label.self::$afterRequiredLabel;
+			    unset($htmlOptions['required']);
 			}
-			unset($htmlOptions['required']);
+			if($htmlOptions['together'])
+			{
+				if(isset($htmlOptions['class']))
+					$htmlOptions['class'].=' '.self::$togetherCss;
+				else
+					$htmlOptions['class']=self::$togetherCss;
+				$label=self::$beforeTogetherLabel.$label.self::$afterTogetherLabel;
+			    unset($htmlOptions['together']);
+			}
 		}
 		return self::tag('label',$htmlOptions,$label);
 	}
@@ -1163,7 +1175,8 @@ EOD;
 	{
 		$realAttribute=$attribute;
 		self::resolveName($model,$attribute); // strip off square brackets if any
-		$htmlOptions['required']=$model->isAttributeRequired($attribute);
+		$htmlOptions['required']= $model->isAttributeRequired($attribute);
+		$htmlOptions['together']= $model->isAttributeRequiredTogether($attribute);
 		return self::activeLabel($model,$realAttribute,$htmlOptions);
 	}
 
