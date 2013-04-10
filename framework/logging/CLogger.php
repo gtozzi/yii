@@ -51,6 +51,10 @@ class CLogger extends CComponent
 	 */
 	private $_categories;
 	/**
+	* Supporto exceptions, backport from 1.1.13
+	*/
+	private $_except;
+	/**
 	 * @var array the profiling results (category, token => time in seconds)
 	 * @since 1.0.6
 	 */
@@ -90,6 +94,7 @@ class CLogger extends CComponent
 	 *
 	 * @param string $levels level filter
 	 * @param string $categories category filter
+	 * @param string $execpt: support exceptions, backport from 1.1.13
 	 * @return array list of messages. Each array elements represents one message
 	 * with the following structure:
 	 * array(
@@ -98,15 +103,16 @@ class CLogger extends CComponent
 	 *   [2] => category (string)
 	 *   [3] => timestamp (float, obtained by microtime(true));
 	 */
-	public function getLogs($levels='',$categories='')
+	public function getLogs($levels='',$categories='', $except='')
 	{
 		$this->_levels=preg_split('/[\s,]+/',strtolower($levels),-1,PREG_SPLIT_NO_EMPTY);
 		$this->_categories=preg_split('/[\s,]+/',strtolower($categories),-1,PREG_SPLIT_NO_EMPTY);
-		if(empty($levels) && empty($categories))
+		$this->_except=preg_split('/[\s,]+/',strtolower($except),-1,PREG_SPLIT_NO_EMPTY);
+		if(empty($levels) && empty($categories) && empty($except))
 			return $this->_logs;
 		else if(empty($levels))
 			return array_values(array_filter(array_filter($this->_logs,array($this,'filterByCategory'))));
-		else if(empty($categories))
+		else if(empty($categories) && empty($except))
 			return array_values(array_filter(array_filter($this->_logs,array($this,'filterByLevel'))));
 		else
 		{
@@ -122,9 +128,15 @@ class CLogger extends CComponent
 	 */
 	private function filterByCategory($value)
 	{
+		$cat=strtolower($value[2]);
+
+		foreach($this->_except as $except)
+		{
+			if($cat===$except || (($c=rtrim($except,'.*'))!==$except && strpos($cat,$c)===0))
+				return false;
+		}
 		foreach($this->_categories as $category)
 		{
-			$cat=strtolower($value[2]);
 			if($cat===$category || (($c=rtrim($category,'.*'))!==$category && strpos($cat,$c)===0))
 				return $value;
 		}
