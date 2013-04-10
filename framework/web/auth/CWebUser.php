@@ -273,6 +273,23 @@ class CWebUser extends CApplicationComponent implements IWebUser
 	}
 
 	/**
+	* get/set of wid (workerid) #blackout #wid
+	*/
+	public function getWid() { return $this->getState('__wid'); }
+	public function setWid($value) { $this->setState('__wid', $value); }
+	/**
+	* get/set role workers #blackout #role
+	*/
+	public function getRole() { return $this->getState('__role'); }
+	public function setRole($value) { $this->setState('__role', $value); }
+
+	public function getLevel() { return $this->getState('__level'); }
+	public function setLevel($value) { $this->setState('__level', $value); }
+
+	public function getDbm() { return $this->getState('__dbm'); }
+	public function setDbm($value) { $this->setState('__dbm', $value); }
+
+	/**
 	 * @param mixed $value the unique identifier for the user. If null, it means the user is a guest.
 	 */
 	public function setId($value)
@@ -472,7 +489,7 @@ class CWebUser extends CApplicationComponent implements IWebUser
 		$cookie=$this->createIdentityCookie($this->getStateKeyPrefix());
 		$cookie->expire=time()+$duration;
 		$data=array(
-			$this->getId(),
+			Yii::app()->user->wid,
 			$this->getName(),
 			$duration,
 			$this->saveIdentityStates(),
