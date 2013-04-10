@@ -242,6 +242,7 @@ class CDbConnection extends CApplicationComponent
 		'dblib'=>'CMssqlSchema',    // dblib drivers on linux (and maybe others os) hosts
 		'sqlsrv'=>'CMssqlSchema',   // Mssql
 		'oci'=>'COciSchema',        // Oracle driver
+		'odbc'=>'COdbcSchema',      // ODBC Driver
 	);
 
 	/**
@@ -420,6 +421,8 @@ class CDbConnection extends CApplicationComponent
 				$pdoClass='CMssqlPdoAdapter';
 			elseif($driver==='sqlsrv')
 				$pdoClass='CMssqlSqlsrvPdoAdapter';
+			elseif($driver==='odbc')
+				$pdoClass='COdbcPdoAdapter';
 		}
 
 		if(!class_exists($pdoClass))
@@ -503,7 +506,8 @@ class CDbConnection extends CApplicationComponent
 	{
 		Yii::trace('Starting transaction','system.db.CDbConnection');
 		$this->setActive(true);
-		$this->_pdo->beginTransaction();
+		if( ! $this->_pdo->beginTransaction() )
+			throw new CDbException(Yii::t('yii','Cannot initiate transaction.',array()));
 		return $this->_transaction=new CDbTransaction($this);
 	}
 

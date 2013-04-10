@@ -77,6 +77,11 @@ class CStringValidator extends CValidator
 	protected function validateAttribute($object,$attribute)
 	{
 		$value=$object->$attribute;
+
+		//Special SQLtxt object is casted to string before validation
+		if( is_object($value) && is_a($value, 'SQLtxt') )
+			$value = (string)$value;
+
 		if($this->allowEmpty && $this->isEmpty($value))
 			return;
 
