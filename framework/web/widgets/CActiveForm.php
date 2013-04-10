@@ -748,4 +748,15 @@ class CActiveForm extends CWidget
 		}
 		return function_exists('json_encode') ? json_encode($result) : CJSON::encode($result);
 	}
+
+	/**
+	* Prints legend
+	*
+	* @param CModel $model the data model
+	* @return string the generated html legend
+	*/
+	public function legend($model)
+	{
+		return CHtml::legend($model);
+	}
 }

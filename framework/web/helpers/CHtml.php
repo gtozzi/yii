@@ -2139,4 +2139,39 @@ EOD;
 		}
 		return $html;
 	}
+
+	/**
+	 * Returns form legend automatically accounting for required or requiredTogether
+	 * fields in the model
+	 *
+	 * @param string $model the model
+	 * @return string the generated html legend
+	 */
+	public static function legend($model)
+	{
+		$required = $together = false;
+
+		foreach( $model->rules() as $r ) {
+			if( end($r) == 'required' )
+				$required = true;
+			if( array_search('ext.validators.requiredTogether', $r, true ) )
+				$together = true;
+		}
+
+		$ret = '';
+		if( $required || $together ) {
+			$ret .= "\n<p class=\"note\">";
+			if( $required ) {
+				$ret .= "\n\n<span class=\"required\">* campi obbligatori.</span>";
+				if( $together )
+					$ret .= '<br/>';
+			}
+			if( $together )
+				$ret .= "\n\n<span class=\"requiredsame\">* campi mutualmente obbligatori.</span>";
+			$ret .= "</p>\n";
+		}
+
+		return $ret;
+	}
+
 }
