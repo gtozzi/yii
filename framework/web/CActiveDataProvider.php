@@ -133,8 +133,20 @@ class CActiveDataProvider extends CDataProvider
 		$baseCriteria=$this->model->getDbCriteria(false);
 		if($baseCriteria!==null)
 			$baseCriteria=clone $baseCriteria;
+
+		$limit = $criteria->limit;
+		$offset= $criteria->offset;
+		$count = $this->getTotalItemCount();
+
+		if( ($count-$limit) <= $offset )
+		{
+			$criteria->limit = $count - $offset;
+		}
+
 		$data=$this->model->findAll($criteria);
+
 		$this->model->setDbCriteria($baseCriteria);
+
 		return $data;
 	}
 

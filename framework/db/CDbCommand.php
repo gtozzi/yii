@@ -251,6 +251,10 @@ class CDbCommand extends CComponent
 	 */
 	public function bindValue($name, $value, $dataType=null)
 	{
+		// If the value is a special SQLtxt object, cast it into string now
+		if( is_object($value) && is_a($value, 'SQLtxt') )
+			$value = (string)$value;
+
 		$this->prepare();
 		if($dataType===null)
 			$this->_statement->bindValue($name,$value,$this->_connection->getPdoType(gettype($value)));

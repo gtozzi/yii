@@ -216,6 +216,7 @@ class CDbConnection extends CApplicationComponent
 		'dblib'=>'CMssqlSchema',    // dblib drivers on linux (and maybe others os) hosts
 		'sqlsrv'=>'CMssqlSchema',   // Mssql
 		'oci'=>'COciSchema',        // Oracle driver
+		'odbc'=>'COdbcSchema',      // ODBC Driver
 	);
 
 	private $_attributes=array();
@@ -384,6 +385,8 @@ class CDbConnection extends CApplicationComponent
 			$driver=strtolower(substr($this->connectionString,0,$pos));
 			if($driver==='mssql' || $driver==='dblib')
 				$pdoClass='CMssqlPdoAdapter';
+			elseif($driver==='odbc')
+				$pdoClass='COdbcPdoAdapter';
 		}
 		return new $pdoClass($this->connectionString,$this->username,
 									$this->password,$this->_attributes);
@@ -457,7 +460,8 @@ class CDbConnection extends CApplicationComponent
 	public function beginTransaction()
 	{
 		$this->setActive(true);
-		$this->_pdo->beginTransaction();
+		if( ! $this->_pdo->beginTransaction() )
+			throw new CDbException(Yii::t('yii','Cannot initiate transaction.',array()));
 		return $this->_transaction=new CDbTransaction($this);
 	}
 

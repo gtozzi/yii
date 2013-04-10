@@ -1340,6 +1340,9 @@ class CJoinQuery
 			$sql.=' ORDER BY ' . implode(', ',$orders);
 
 		$sql=$builder->applyLimit($sql,$this->limit,$this->offset);
+		// ODBC Bug Fix condition
+		if($builder->getDbConnection()->getDriverName()==='odbc')
+			$builder->applySqlBugFilters($sql, $this->params);
 		$command=$builder->getDbConnection()->createCommand($sql);
 		$builder->bindValues($command,$this->params);
 		return $command;
