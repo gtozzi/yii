@@ -71,7 +71,7 @@ class CFormatter extends CApplicationComponent
 	 * @var array the text to be displayed when formatting a boolean value. The first element corresponds
 	 * to the text display for false, the second element for true. Defaults to <code>array('No', 'Yes')</code>.
 	 */
-	public $booleanFormat=array('No','Yes');
+	public $booleanFormat=array('No','Sì');
 
 	/**
 	 * Calls the format method when its shortcut is invoked.

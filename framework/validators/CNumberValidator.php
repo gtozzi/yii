@@ -52,7 +52,7 @@ class CNumberValidator extends CValidator
 	 * @var string the regular expression for matching numbers.
 	 * @since 1.1.7
 	 */
-	public $numberPattern='/^\s*[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?\s*$/';
+	public $numberPattern='/^\s*[-+]?[0-9]*(?:.|,)?[0-9]+([eE][-+]?[0-9]+)?\s*$/';
 
 
 	/**

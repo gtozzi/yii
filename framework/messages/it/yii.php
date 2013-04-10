@@ -177,7 +177,7 @@ return array (
   'You are not authorized to perform this action.' => 'Non si ha l\'autorizzazione ad effettuare l\'operazione.',
   'Your request is not valid.' => 'La richiesta non è valida.',
   '{attribute} "{value}" has already been taken.' => '{attribute} "{value}" è già stato preso.',
-  '{attribute} cannot be blank.' => '{attribute} non può essere nullo.',
+  '{attribute} cannot be blank.' => '{attribute} non può essere vuoto.',
   '{attribute} is invalid.' => '{attribute} non è valido.',
   '{attribute} is not a valid URL.' => '{attribute} non è un URL valido.',
   '{attribute} is not a valid email address.' => '{attribute} non è una email valida.',
