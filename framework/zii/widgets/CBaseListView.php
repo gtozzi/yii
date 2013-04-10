@@ -180,8 +180,9 @@ abstract class CBaseListView extends CWidget
 	{
 		echo CHtml::openTag('div',array(
 			'class'=>'keys',
+			'id'=>$this->dataProvider->modelClass.'CGrid',
 			'style'=>'display:none',
-			'title'=>Yii::app()->getRequest()->getUrl(),
+			'title'=>'?r='.$this->dataProvider->modelClass.'/admin&ok=1',
 		));
 		foreach($this->dataProvider->getKeys() as $key)
 			echo "<span>".CHtml::encode($key)."</span>";

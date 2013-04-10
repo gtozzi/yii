@@ -2,7 +2,7 @@
 {
     padding: 2px 0;
     margin: 0;
-    border-bottom: 1px solid #4F81BD;
+    /*border-bottom: 1px solid #231f20;*/
     font: bold 12px Verdana, sans-serif;
 }
 
@@ -19,40 +19,43 @@
 	-moz-border-radius-topright:5px;
     padding: 2px 0.5em;
     margin: 0 0 0 3px;
-    border: 1px solid #4F81BD;
+    border: 1px solid #231f20;
     border-bottom: none;
-    background: #d3dfee;
+    background: #231f20;
     text-decoration: none;
 }
 
 .yiiTab ul.tabs a:link
 {
-	color: #667;
+	color: #fff;
 }
 
 .yiiTab ul.tabs a:visited
 {
-	color: #667;
+	color: #fff;
 }
 
 .yiiTab ul.tabs a:hover
 {
-    color: #000;
-    background: #E6F2FF;
-    border-color: #227;
+    color: #231f20;
+    background: #d0f2a9;
 }
 
 .yiiTab ul.tabs a.active
 {
-    background: white;
+    background: #80cc28;
     border-bottom: 1px solid white;
+    color: #231f20;
 }
 
 .yiiTab div.view
 {
-    border-left: 1px solid #4F81BD;
-    border-right: 1px solid #4F81BD;
-    border-bottom: 1px solid #4F81BD;
+    border-left: 1px solid #231f20;
+    border-right: 1px solid #231f20;
+    border-bottom: 1px solid #231f20;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
     padding: 8px;
     margin: 0;
 }

@@ -797,6 +797,7 @@ class YiiBase
 		'CTabView' => '/web/widgets/CTabView.php',
 		'CTextHighlighter' => '/web/widgets/CTextHighlighter.php',
 		'CTreeView' => '/web/widgets/CTreeView.php',
+		'CTreeViewDea' => '/web/widgets/CTreeViewDea.php',
 		'CWidget' => '/web/widgets/CWidget.php',
 		'CCaptcha' => '/web/widgets/captcha/CCaptcha.php',
 		'CCaptchaAction' => '/web/widgets/captcha/CCaptchaAction.php',

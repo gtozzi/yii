@@ -5,7 +5,7 @@
 
 .grid-view
 {
-	padding: 15px 0;
+	padding: 5px 0;
 }
 
 .grid-view table.items
@@ -56,12 +56,12 @@
 
 .grid-view table.items tr.even
 {
-	background: #F8F8F8;
+	background: #eeeeee;
 }
 
 .grid-view table.items tr.odd
 {
-	background: #E5F1F4;
+	background: #dcf7bd;
 }
 
 .grid-view table.items tr.selected

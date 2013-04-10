@@ -27,9 +27,9 @@ ul.yiiPager li
 ul.yiiPager a:link,
 ul.yiiPager a:visited
 {
-	border:solid 1px #9aafe5;
+	border:solid 1px #dcf7bd;
 	font-weight:bold;
-	color:#0e509e;
+	color:#7cb63a;
 	padding:1px 6px;
 	text-decoration:none;
 }
@@ -41,13 +41,13 @@ ul.yiiPager .page a
 
 ul.yiiPager a:hover
 {
-	border:solid 1px #0e509e;
+	border:solid 1px #80cc28;
 }
 
 ul.yiiPager .selected a
 {
-	background:#2e6ab1;
-	color:#FFFFFF;
+	background:#80cc28;
+	color:#231f20;
 	font-weight:bold;
 }
 

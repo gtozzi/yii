@@ -55,6 +55,10 @@ return array(
 		'js'=>array('jquery.treeview.js', 'jquery.treeview.edit.js', 'jquery.treeview.async.js'),
 		'depends'=>array('jquery', 'cookie'),
 	),
+	'treeviewdea'=>array(
+		'js'=>array('jquery.treeviewdea.js', 'jquery.treeviewdea.edit.js', 'jquery.treeviewdea.async.js'),
+		'depends'=>array('jquery', 'cookie'),
+	),
 	'multifile'=>array(
 		'js'=>array('jquery.multifile.js'),
 		'depends'=>array('jquery'),

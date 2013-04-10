@@ -89,7 +89,29 @@ class CDataColumn extends CGridColumn
 	protected function renderFilterCellContent()
 	{
 		if(is_string($this->filter))
-			echo $this->filter;
+        {
+            if( preg_match('/date/',$this->filter) )
+            {
+                /* 
+                TYPE_CONTROLLER_VALUE_ID
+                */
+			    $cs         = Yii::app()->getClientScript();
+                $script     = $cs->getCoreScriptUrl();
+                $script2    = $cs->getCoreScriptUrl().'/jui/js';
+                $theme      = $cs->getCoreScriptUrl().'/jui/css';
+			    $cs->registerCssFile($theme.'/base/'.'jquery-ui.css');
+		        Yii::app()->getClientScript()->registerScriptFile($script.'/jquery.js' );
+		        Yii::app()->getClientScript()->registerScriptFile($script2.'/jquery-ui.min.js' );
+
+                $o = explode('_', $this->filter);
+                $o[2] = str_replace('-','_', $o[2]);
+                echo '<div style="width:100px;"><input style="width:75px;float:left;" id="'.$o[3].'" name="'.$o[1].'['.$o[2].']" type="text" value="'.
+                (($_GET[ $o[1] ][ $o[2] ])?addslashes($_GET[ $o[1] ][ $o[2] ]):'').'" /></div>'.
+                " <script>$(document).ready(function() {  $('#".$o[3]."').datepicker({'showAnim':'fold','dateFormat':'dd.mm.yy','showOn':'button','buttonImage':'".Yii::app()->request->baseUrl."/images/025.png'}); });</script>";
+                /* */
+            }else
+			    echo $this->filter;
+        }
 		else if($this->filter!==false && $this->grid->filter!==null && $this->name!==null && strpos($this->name,'.')===false)
 		{
 			if(is_array($this->filter))
