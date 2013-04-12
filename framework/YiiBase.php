@@ -644,6 +644,7 @@ class YiiBase
 		'CDbException' => '/db/CDbException.php',
 		'CDbMigration' => '/db/CDbMigration.php',
 		'CDbTransaction' => '/db/CDbTransaction.php',
+		'SQLtxt' => '/db/SQLtxt.php',
 		'CActiveFinder' => '/db/ar/CActiveFinder.php',
 		'CActiveRecord' => '/db/ar/CActiveRecord.php',
 		'CActiveRecordBehavior' => '/db/ar/CActiveRecordBehavior.php',
