@@ -115,8 +115,6 @@ class CJuiDatePicker extends CJuiInputWidget
 
 		$options=CJavaScript::encode($this->options);
 
-		// ##BLACKOUT ##SESSION ##DISABLED
-		if( $_SESSION['flag_commessa_non_modificabile']==false || !isset($_SESSION['flag_commessa_non_modificabile']) )
 		$js = "jQuery('#{$id}').datepicker($options);";
 
 		if (isset($this->language))
