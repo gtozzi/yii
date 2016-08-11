@@ -1,4 +1,4 @@
-         Upgrading Instructions for Yii Framework v1.1.17
+         Upgrading Instructions for Yii Framework v1.1.18
          ================================================
 
 !!!IMPORTANT!!!
@@ -17,10 +17,18 @@ General upgrade instructions
 - Check if everything is OK, if not — revert from backup and post
   issues to Yii issue tracker.
 
+
+Upgrading from v1.1.17
+----------------------
+
+No significant changes were made.
+
 Upgrading from v1.1.16
 ----------------------
 
 - If you're using CApcCache with APCu, set `useApcu` to `true` in the component config.
+- Undocumented usage of regular expressions outside parameters in URL rules was considered a bug (#3348). Regular
+  expressions are now escaped properly so if you rely on previous behavior, please update your code.
 
 Upgrading from v1.1.15
 ----------------------
