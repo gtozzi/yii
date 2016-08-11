@@ -310,6 +310,11 @@ class CActiveForm extends CWidget
 	 * @since 1.1.7
 	 */
 	protected $summaryID;
+	/**
+	 * @var string[] attribute IDs to be used to display error summary.
+	 * @since 1.1.14
+	 */
+	private $_summaryAttributes=array();
 
 	/**
 	 * Initializes the widget.
@@ -359,6 +364,8 @@ class CActiveForm extends CWidget
 		if(isset($this->clientOptions['validationUrl']) && is_array($this->clientOptions['validationUrl']))
 			$options['validationUrl']=CHtml::normalizeUrl($this->clientOptions['validationUrl']);
 
+		foreach($this->_summaryAttributes as $attribute)
+			$this->attributes[$attribute]['summary']=true;
 		$options['attributes']=array_values($this->attributes);
 
 		if($this->summaryID!==null)
@@ -369,7 +376,7 @@ class CActiveForm extends CWidget
 
 		if(!empty(CHtml::$errorCss))
 			$options['errorCss']=CHtml::$errorCss;
-		
+
 		$options=CJavaScript::encode($options);
 		$cs->registerCoreScript('yiiactiveform');
 		$id=$this->id;
@@ -400,7 +407,21 @@ class CActiveForm extends CWidget
 	 * particular model attribute. For more details about these options, please refer to {@link clientOptions}.
 	 * Note that these options are only used when {@link enableAjaxValidation} or {@link enableClientValidation}
 	 * is set true.
-	 *
+	 * <ul>
+	 * <li>inputID</li>
+	 * </ul>
+	 * When an CActiveForm input field uses a custom ID, for ajax/client validation to work properly 
+	 * inputID should be set to the same ID
+	 * 
+	 * Example:
+	 * <pre>
+	 * <div class="form-element">
+	 *    <?php echo $form->labelEx($model,'attribute'); ?>
+	 *    <?php echo $form->textField($model,'attribute', array('id'=>'custom-id')); ?>
+	 *    <?php echo $form->error($model,'attribute',array('inputID'=>'custom-id')); ?>
+	 * </div>
+	 * </pre>
+	 * 
 	 * When client-side validation is enabled, an option named "clientValidation" is also recognized.
 	 * This option should take a piece of JavaScript code to perform client-side validation. In the code,
 	 * the variables are predefined:
@@ -409,6 +430,8 @@ class CActiveForm extends CWidget
 	 * <li>messages: an array that may be appended with new error messages for the attribute.</li>
 	 * <li>attribute: a data structure keeping all client-side options for the attribute</li>
 	 * </ul>
+	 * This should NOT be a function but just the code, Yii will enclose the code you provide inside the
+	 * actual JS function.
 	 * @param boolean $enableAjaxValidation whether to enable AJAX validation for the specified attribute.
 	 * Note that in order to enable AJAX validation, both {@link enableAjaxValidation} and this parameter
 	 * must be true.
@@ -472,6 +495,7 @@ class CActiveForm extends CWidget
 		if($enableClientValidation)
 		{
 			$validators=isset($htmlOptions['clientValidation']) ? array($htmlOptions['clientValidation']) : array();
+			unset($htmlOptions['clientValidation']);
 
 			$attributeName = $attribute;
 			if(($pos=strrpos($attribute,']'))!==false && $pos!==strlen($attribute)-1) // e.g. [a]name
@@ -536,6 +560,10 @@ class CActiveForm extends CWidget
 		}
 
 		$this->summaryID=$htmlOptions['id'];
+		foreach(is_array($models) ? $models : array($models) as $model)
+			foreach($model->getSafeAttributeNames() as $attribute)
+				$this->_summaryAttributes[]=CHtml::activeId($model,$attribute);
+
 		return $html;
 	}
 
@@ -886,8 +914,9 @@ class CActiveForm extends CWidget
 			$models=array($models);
 		foreach($models as $model)
 		{
-			if($loadInput && isset($_POST[get_class($model)]))
-				$model->attributes=$_POST[get_class($model)];
+			$modelName=CHtml::modelName($model);
+			if($loadInput && isset($_POST[$modelName]))
+				$model->attributes=$_POST[$modelName];
 			$model->validate($attributes);
 			foreach($model->getErrors() as $attribute=>$errors)
 				$result[CHtml::activeId($model,$attribute)]=$errors;
@@ -914,8 +943,9 @@ class CActiveForm extends CWidget
 			$models=array($models);
 		foreach($models as $i=>$model)
 		{
-			if($loadInput && isset($_POST[get_class($model)][$i]))
-				$model->attributes=$_POST[get_class($model)][$i];
+			$modelName=CHtml::modelName($model);
+			if($loadInput && isset($_POST[$modelName][$i]))
+				$model->attributes=$_POST[$modelName][$i];
 			$model->validate($attributes);
 			foreach($model->getErrors() as $attribute=>$errors)
 				$result[CHtml::activeId($model,'['.$i.']'.$attribute)]=$errors;
