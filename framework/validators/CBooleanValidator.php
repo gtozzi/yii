@@ -4,17 +4,24 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2011 Yii Software LLC
+ * @copyright 2008-2013 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
 /**
  * CBooleanValidator validates that the attribute value is either {@link trueValue}  or {@link falseValue}.
  *
+ * When using the {@link message} property to define a custom error message, the message
+ * may contain additional placeholders that will be replaced with the actual content. In addition
+ * to the "{attribute}" placeholder, recognized by all validators (see {@link CValidator}),
+ * CBooleanValidator allows for the following placeholders to be specified:
+ * <ul>
+ * <li>{true}: replaced with value representing the true status {@link trueValue}.</li>
+ * <li>{false}: replaced with value representing the false status {@link falseValue}.</li>
+ * </ul>
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id$
  * @package system.validators
- * @since 1.0.10
  */
 class CBooleanValidator extends CValidator
 {
@@ -49,8 +56,8 @@ class CBooleanValidator extends CValidator
 		$value=$object->$attribute;
 		if($this->allowEmpty && $this->isEmpty($value))
 			return;
-		if(!$this->strict && $value!=$this->trueValue && $value!=$this->falseValue
-			|| $this->strict && $value!==$this->trueValue && $value!==$this->falseValue)
+
+		if(!$this->validateValue($value))
 		{
 			$message=$this->message!==null?$this->message:Yii::t('yii','{attribute} must be either {true} or {false}.');
 			$this->addError($object,$attribute,$message,array(
@@ -58,6 +65,25 @@ class CBooleanValidator extends CValidator
 				'{false}'=>$this->falseValue,
 			));
 		}
+	}
+	
+	/**
+	 * Validates a static value to see if it is a valid boolean.
+	 * This method is provided so that you can call it directly without going
+	 * through the model validation rule mechanism.
+	 *
+	 * Note that this method does not respect the {@link allowEmpty} property.
+	 *
+	 * @param mixed $value the value to be validated
+	 * @return boolean whether the value is a valid boolean
+	 * @since 1.1.17
+	 */
+	public function validateValue($value)
+	{
+		if ($this->strict)
+			return $value===$this->trueValue || $value===$this->falseValue;
+		else
+			return $value==$this->trueValue || $value==$this->falseValue;
 	}
 
 	/**
@@ -77,7 +103,7 @@ class CBooleanValidator extends CValidator
 			'{false}'=>$this->falseValue,
 		));
 		return "
-if(".($this->allowEmpty ? "$.trim(value)!='' && " : '')."value!=".CJSON::encode($this->trueValue)." && value!=".CJSON::encode($this->falseValue).") {
+if(".($this->allowEmpty ? "jQuery.trim(value)!='' && " : '')."value!=".CJSON::encode($this->trueValue)." && value!=".CJSON::encode($this->falseValue).") {
 	messages.push(".CJSON::encode($message).");
 }
 ";

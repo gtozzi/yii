@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2011 Yii Software LLC
+ * @copyright 2008-2013 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -12,12 +12,13 @@
  * CDbAuthManager represents an authorization manager that stores authorization information in database.
  *
  * The database connection is specified by {@link connectionID}. And the database schema
- * should be as described in "framework/web/auth/schema.sql". You may change the names of
+ * should be as described in "framework/web/auth/*.sql". You may change the names of
  * the three tables used to store the authorization data by setting {@link itemTable},
  * {@link itemChildTable} and {@link assignmentTable}.
  *
+ * @property array $authItems The authorization items of the specific type.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id$
  * @package system.web.auth
  * @since 1.0
  */
@@ -25,7 +26,7 @@ class CDbAuthManager extends CAuthManager
 {
 	/**
 	 * @var string the ID of the {@link CDbConnection} application component. Defaults to 'db'.
-	 * The database must have the tables as declared in "framework/web/auth/schema.sql".
+	 * The database must have the tables as declared in "framework/web/auth/*.sql".
 	 */
 	public $connectionID='db';
 	/**
@@ -65,6 +66,7 @@ class CDbAuthManager extends CAuthManager
 	 * the unique identifier of a user. See {@link IWebUser::getId}.
 	 * @param array $params name-value pairs that would be passed to biz rules associated
 	 * with the tasks and roles assigned to the user.
+	 * Since version 1.1.11 a param with name 'userId' is added to this array, which holds the value of <code>$userId</code>.
 	 * @return boolean whether the operations can be performed by the user.
 	 */
 	public function checkAccess($itemName,$userId,$params=array())
@@ -81,6 +83,7 @@ class CDbAuthManager extends CAuthManager
 	 * the unique identifier of a user. See {@link IWebUser::getId}.
 	 * @param array $params name-value pairs that would be passed to biz rules associated
 	 * with the tasks and roles assigned to the user.
+	 * Since version 1.1.11 a param with name 'userId' is added to this array, which holds the value of <code>$userId</code>.
 	 * @param array $assignments the assignments to the specified user
 	 * @return boolean whether the operations can be performed by the user.
 	 * @since 1.1.3
@@ -90,6 +93,8 @@ class CDbAuthManager extends CAuthManager
 		if(($item=$this->getAuthItem($itemName))===null)
 			return false;
 		Yii::trace('Checking permission "'.$item->getName().'"','system.web.auth.CDbAuthManager');
+		if(!isset($params['userId']))
+			$params['userId'] = $userId;
 		if($this->executeBizRule($item->getBizRule(),$params,$item->getData()))
 		{
 			if(in_array($itemName,$this->defaultRoles))
@@ -100,8 +105,12 @@ class CDbAuthManager extends CAuthManager
 				if($this->executeBizRule($assignment->getBizRule(),$params,$assignment->getData()))
 					return true;
 			}
-			$sql="SELECT parent FROM {$this->itemChildTable} WHERE child=:name";
-			foreach($this->db->createCommand($sql)->bindValue(':name',$itemName)->queryColumn() as $parent)
+			$parents=$this->db->createCommand()
+				->select('parent')
+				->from($this->itemChildTable)
+				->where('child=:name', array(':name'=>$itemName))
+				->queryColumn();
+			foreach($parents as $parent)
 			{
 				if($this->checkAccessRecursive($parent,$userId,$params,$assignments))
 					return true;
@@ -114,6 +123,7 @@ class CDbAuthManager extends CAuthManager
 	 * Adds an item as a child of another item.
 	 * @param string $itemName the parent item name
 	 * @param string $childName the child item name
+	 * @return boolean whether the item is added successfully
 	 * @throws CException if either parent or child doesn't exist or if a loop has been detected.
 	 */
 	public function addItemChild($itemName,$childName)
@@ -121,11 +131,16 @@ class CDbAuthManager extends CAuthManager
 		if($itemName===$childName)
 			throw new CException(Yii::t('yii','Cannot add "{name}" as a child of itself.',
 					array('{name}'=>$itemName)));
-		$sql="SELECT * FROM {$this->itemTable} WHERE name=:name1 OR name=:name2";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':name1',$itemName);
-		$command->bindValue(':name2',$childName);
-		$rows=$command->queryAll();
+
+		$rows=$this->db->createCommand()
+			->select()
+			->from($this->itemTable)
+			->where('name=:name1 OR name=:name2', array(
+				':name1'=>$itemName,
+				':name2'=>$childName
+			))
+			->queryAll();
+
 		if(count($rows)==2)
 		{
 			if($rows[0]['name']===$itemName)
@@ -143,11 +158,13 @@ class CDbAuthManager extends CAuthManager
 				throw new CException(Yii::t('yii','Cannot add "{child}" as a child of "{name}". A loop has been detected.',
 					array('{child}'=>$childName,'{name}'=>$itemName)));
 
-			$sql="INSERT INTO {$this->itemChildTable} (parent,child) VALUES (:parent,:child)";
-			$command=$this->db->createCommand($sql);
-			$command->bindValue(':parent',$itemName);
-			$command->bindValue(':child',$childName);
-			$command->execute();
+			$this->db->createCommand()
+				->insert($this->itemChildTable, array(
+					'parent'=>$itemName,
+					'child'=>$childName,
+				));
+
+			return true;
 		}
 		else
 			throw new CException(Yii::t('yii','Either "{parent}" or "{child}" does not exist.',array('{child}'=>$childName,'{parent}'=>$itemName)));
@@ -162,11 +179,11 @@ class CDbAuthManager extends CAuthManager
 	 */
 	public function removeItemChild($itemName,$childName)
 	{
-		$sql="DELETE FROM {$this->itemChildTable} WHERE parent=:parent AND child=:child";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':parent',$itemName);
-		$command->bindValue(':child',$childName);
-		return $command->execute()>0;
+		return $this->db->createCommand()
+			->delete($this->itemChildTable, 'parent=:parent AND child=:child', array(
+				':parent'=>$itemName,
+				':child'=>$childName
+			)) > 0;
 	}
 
 	/**
@@ -177,32 +194,43 @@ class CDbAuthManager extends CAuthManager
 	 */
 	public function hasItemChild($itemName,$childName)
 	{
-		$sql="SELECT parent FROM {$this->itemChildTable} WHERE parent=:parent AND child=:child";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':parent',$itemName);
-		$command->bindValue(':child',$childName);
-		return $command->queryScalar()!==false;
+		return $this->db->createCommand()
+			->select('parent')
+			->from($this->itemChildTable)
+			->where('parent=:parent AND child=:child', array(
+				':parent'=>$itemName,
+				':child'=>$childName))
+			->queryScalar() !== false;
 	}
 
 	/**
 	 * Returns the children of the specified item.
 	 * @param mixed $names the parent item name. This can be either a string or an array.
-	 * The latter represents a list of item names (available since version 1.0.5).
+	 * The latter represents a list of item names.
 	 * @return array all child items of the parent
 	 */
 	public function getItemChildren($names)
 	{
 		if(is_string($names))
 			$condition='parent='.$this->db->quoteValue($names);
-		else if(is_array($names) && $names!==array())
+		elseif(is_array($names) && $names!==array())
 		{
 			foreach($names as &$name)
 				$name=$this->db->quoteValue($name);
 			$condition='parent IN ('.implode(', ',$names).')';
 		}
-		$sql="SELECT name, type, description, bizrule, data FROM {$this->itemTable}, {$this->itemChildTable} WHERE $condition AND name=child";
+
+		$rows=$this->db->createCommand()
+			->select('name, type, description, bizrule, data')
+			->from(array(
+				$this->itemTable,
+				$this->itemChildTable
+			))
+			->where($condition.' AND name=child')
+			->queryAll();
+
 		$children=array();
-		foreach($this->db->createCommand($sql)->queryAll() as $row)
+		foreach($rows as $row)
 		{
 			if(($data=@unserialize($row['data']))===false)
 				$data=null;
@@ -226,13 +254,13 @@ class CDbAuthManager extends CAuthManager
 		if($this->usingSqlite() && $this->getAuthItem($itemName)===null)
 			throw new CException(Yii::t('yii','The item "{name}" does not exist.',array('{name}'=>$itemName)));
 
-		$sql="INSERT INTO {$this->assignmentTable} (itemname,userid,bizrule,data) VALUES (:itemname,:userid,:bizrule,:data)";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':itemname',$itemName);
-		$command->bindValue(':userid',$userId);
-		$command->bindValue(':bizrule',$bizRule);
-		$command->bindValue(':data',serialize($data));
-		$command->execute();
+		$this->db->createCommand()
+			->insert($this->assignmentTable, array(
+				'itemname'=>$itemName,
+				'userid'=>$userId,
+				'bizrule'=>$bizRule,
+				'data'=>serialize($data)
+			));
 		return new CAuthAssignment($this,$itemName,$userId,$bizRule,$data);
 	}
 
@@ -244,11 +272,11 @@ class CDbAuthManager extends CAuthManager
 	 */
 	public function revoke($itemName,$userId)
 	{
-		$sql="DELETE FROM {$this->assignmentTable} WHERE itemname=:itemname AND userid=:userid";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':itemname',$itemName);
-		$command->bindValue(':userid',$userId);
-		return $command->execute()>0;
+		return $this->db->createCommand()
+			->delete($this->assignmentTable, 'itemname=:itemname AND userid=:userid', array(
+				':itemname'=>$itemName,
+				':userid'=>$userId
+			)) > 0;
 	}
 
 	/**
@@ -259,11 +287,13 @@ class CDbAuthManager extends CAuthManager
 	 */
 	public function isAssigned($itemName,$userId)
 	{
-		$sql="SELECT itemname FROM {$this->assignmentTable} WHERE itemname=:itemname AND userid=:userid";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':itemname',$itemName);
-		$command->bindValue(':userid',$userId);
-		return $command->queryScalar()!==false;
+		return $this->db->createCommand()
+			->select('itemname')
+			->from($this->assignmentTable)
+			->where('itemname=:itemname AND userid=:userid', array(
+				':itemname'=>$itemName,
+				':userid'=>$userId))
+			->queryScalar() !== false;
 	}
 
 	/**
@@ -275,11 +305,14 @@ class CDbAuthManager extends CAuthManager
 	 */
 	public function getAuthAssignment($itemName,$userId)
 	{
-		$sql="SELECT * FROM {$this->assignmentTable} WHERE itemname=:itemname AND userid=:userid";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':itemname',$itemName);
-		$command->bindValue(':userid',$userId);
-		if(($row=$command->queryRow($sql))!==false)
+		$row=$this->db->createCommand()
+			->select()
+			->from($this->assignmentTable)
+			->where('itemname=:itemname AND userid=:userid', array(
+				':itemname'=>$itemName,
+				':userid'=>$userId))
+			->queryRow();
+		if($row!==false)
 		{
 			if(($data=@unserialize($row['data']))===false)
 				$data=null;
@@ -297,11 +330,13 @@ class CDbAuthManager extends CAuthManager
 	 */
 	public function getAuthAssignments($userId)
 	{
-		$sql="SELECT * FROM {$this->assignmentTable} WHERE userid=:userid";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':userid',$userId);
+		$rows=$this->db->createCommand()
+			->select()
+			->from($this->assignmentTable)
+			->where('userid=:userid', array(':userid'=>$userId))
+			->queryAll();
 		$assignments=array();
-		foreach($command->queryAll($sql) as $row)
+		foreach($rows as $row)
 		{
 			if(($data=@unserialize($row['data']))===false)
 				$data=null;
@@ -316,13 +351,14 @@ class CDbAuthManager extends CAuthManager
 	 */
 	public function saveAuthAssignment($assignment)
 	{
-		$sql="UPDATE {$this->assignmentTable} SET bizrule=:bizrule, data=:data WHERE itemname=:itemname AND userid=:userid";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':bizrule',$assignment->getBizRule());
-		$command->bindValue(':data',serialize($assignment->getData()));
-		$command->bindValue(':itemname',$assignment->getItemName());
-		$command->bindValue(':userid',$assignment->getUserId());
-		$command->execute();
+		$this->db->createCommand()
+			->update($this->assignmentTable, array(
+				'bizrule'=>$assignment->getBizRule(),
+				'data'=>serialize($assignment->getData()),
+			), 'itemname=:itemname AND userid=:userid', array(
+				'itemname'=>$assignment->getItemName(),
+				'userid'=>$assignment->getUserId()
+			));
 	}
 
 	/**
@@ -337,31 +373,39 @@ class CDbAuthManager extends CAuthManager
 	{
 		if($type===null && $userId===null)
 		{
-			$sql="SELECT * FROM {$this->itemTable}";
-			$command=$this->db->createCommand($sql);
+			$command=$this->db->createCommand()
+				->select()
+				->from($this->itemTable);
 		}
-		else if($userId===null)
+		elseif($userId===null)
 		{
-			$sql="SELECT * FROM {$this->itemTable} WHERE type=:type";
-			$command=$this->db->createCommand($sql);
-			$command->bindValue(':type',$type);
+			$command=$this->db->createCommand()
+				->select()
+				->from($this->itemTable)
+				->where('type=:type', array(':type'=>$type));
 		}
-		else if($type===null)
+		elseif($type===null)
 		{
-			$sql="SELECT name,type,description,t1.bizrule,t1.data
-				FROM {$this->itemTable} t1, {$this->assignmentTable} t2
-				WHERE name=itemname AND userid=:userid";
-			$command=$this->db->createCommand($sql);
-			$command->bindValue(':userid',$userId);
+			$command=$this->db->createCommand()
+				->select('name,type,description,t1.bizrule,t1.data')
+				->from(array(
+					$this->itemTable.' t1',
+					$this->assignmentTable.' t2'
+				))
+				->where('name=itemname AND userid=:userid', array(':userid'=>$userId));
 		}
 		else
 		{
-			$sql="SELECT name,type,description,t1.bizrule,t1.data
-				FROM {$this->itemTable} t1, {$this->assignmentTable} t2
-				WHERE name=itemname AND type=:type AND userid=:userid";
-			$command=$this->db->createCommand($sql);
-			$command->bindValue(':type',$type);
-			$command->bindValue(':userid',$userId);
+			$command=$this->db->createCommand()
+				->select('name,type,description,t1.bizrule,t1.data')
+				->from(array(
+					$this->itemTable.' t1',
+					$this->assignmentTable.' t2'
+				))
+				->where('name=itemname AND type=:type AND userid=:userid', array(
+					':type'=>$type,
+					':userid'=>$userId
+				));
 		}
 		$items=array();
 		foreach($command->queryAll() as $row)
@@ -377,7 +421,7 @@ class CDbAuthManager extends CAuthManager
 	 * Creates an authorization item.
 	 * An authorization item represents an action permission (e.g. creating a post).
 	 * It has three types: operation, task and role.
-	 * Authorization items form a hierarchy. Higher level items inheirt permissions representing
+	 * Authorization items form a hierarchy. Higher level items inherit permissions representing
 	 * by lower level items.
 	 * @param string $name the item name. This must be a unique identifier.
 	 * @param integer $type the item type (0: operation, 1: task, 2: role).
@@ -390,14 +434,14 @@ class CDbAuthManager extends CAuthManager
 	 */
 	public function createAuthItem($name,$type,$description='',$bizRule=null,$data=null)
 	{
-		$sql="INSERT INTO {$this->itemTable} (name,type,description,bizrule,data) VALUES (:name,:type,:description,:bizrule,:data)";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':type',$type);
-		$command->bindValue(':name',$name);
-		$command->bindValue(':description',$description);
-		$command->bindValue(':bizrule',$bizRule);
-		$command->bindValue(':data',serialize($data));
-		$command->execute();
+		$this->db->createCommand()
+			->insert($this->itemTable, array(
+				'name'=>$name,
+				'type'=>$type,
+				'description'=>$description,
+				'bizrule'=>$bizRule,
+				'data'=>serialize($data)
+			));
 		return new CAuthItem($this,$name,$type,$description,$bizRule,$data);
 	}
 
@@ -410,23 +454,21 @@ class CDbAuthManager extends CAuthManager
 	{
 		if($this->usingSqlite())
 		{
-			$sql="DELETE FROM {$this->itemChildTable} WHERE parent=:name1 OR child=:name2";
-			$command=$this->db->createCommand($sql);
-			$command->bindValue(':name1',$name);
-			$command->bindValue(':name2',$name);
-			$command->execute();
-
-			$sql="DELETE FROM {$this->assignmentTable} WHERE itemname=:name";
-			$command=$this->db->createCommand($sql);
-			$command->bindValue(':name',$name);
-			$command->execute();
+			$this->db->createCommand()
+				->delete($this->itemChildTable, 'parent=:name1 OR child=:name2', array(
+					':name1'=>$name,
+					':name2'=>$name
+			));
+			$this->db->createCommand()
+				->delete($this->assignmentTable, 'itemname=:name', array(
+					':name'=>$name,
+			));
 		}
 
-		$sql="DELETE FROM {$this->itemTable} WHERE name=:name";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':name',$name);
-
-		return $command->execute()>0;
+		return $this->db->createCommand()
+			->delete($this->itemTable, 'name=:name', array(
+				':name'=>$name
+			)) > 0;
 	}
 
 	/**
@@ -436,10 +478,13 @@ class CDbAuthManager extends CAuthManager
 	 */
 	public function getAuthItem($name)
 	{
-		$sql="SELECT * FROM {$this->itemTable} WHERE name=:name";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':name',$name);
-		if(($row=$command->queryRow())!==false)
+		$row=$this->db->createCommand()
+			->select()
+			->from($this->itemTable)
+			->where('name=:name', array(':name'=>$name))
+			->queryRow();
+
+		if($row!==false)
 		{
 			if(($data=@unserialize($row['data']))===false)
 				$data=null;
@@ -458,32 +503,36 @@ class CDbAuthManager extends CAuthManager
 	{
 		if($this->usingSqlite() && $oldName!==null && $item->getName()!==$oldName)
 		{
-			$sql="UPDATE {$this->itemChildTable} SET parent=:newName WHERE parent=:name";
-			$command=$this->db->createCommand($sql);
-			$command->bindValue(':name',$oldName);
-			$command->bindValue(':newName',$item->getName());
-			$command->execute();
-			$sql="UPDATE {$this->itemChildTable} SET child=:newName WHERE child=:name";
-			$command=$this->db->createCommand($sql);
-			$command->bindValue(':name',$oldName);
-			$command->bindValue(':newName',$item->getName());
-			$command->execute();
-			$sql="UPDATE {$this->assignmentTable} SET itemname=:newName WHERE itemname=:name";
-			$command=$this->db->createCommand($sql);
-			$command->bindValue(':name',$oldName);
-			$command->bindValue(':newName',$item->getName());
-			$command->execute();
+			$this->db->createCommand()
+				->update($this->itemChildTable, array(
+					'parent'=>$item->getName(),
+				), 'parent=:whereName', array(
+					':whereName'=>$oldName,
+				));
+			$this->db->createCommand()
+				->update($this->itemChildTable, array(
+					'child'=>$item->getName(),
+				), 'child=:whereName', array(
+					':whereName'=>$oldName,
+				));
+			$this->db->createCommand()
+				->update($this->assignmentTable, array(
+					'itemname'=>$item->getName(),
+				), 'itemname=:whereName', array(
+					':whereName'=>$oldName,
+				));
 		}
 
-		$sql="UPDATE {$this->itemTable} SET name=:newName, type=:type, description=:description, bizrule=:bizrule, data=:data WHERE name=:name";
-		$command=$this->db->createCommand($sql);
-		$command->bindValue(':type',$item->getType());
-		$command->bindValue(':name',$oldName===null?$item->getName():$oldName);
-		$command->bindValue(':newName',$item->getName());
-		$command->bindValue(':description',$item->getDescription());
-		$command->bindValue(':bizrule',$item->getBizRule());
-		$command->bindValue(':data',serialize($item->getData()));
-		$command->execute();
+		$this->db->createCommand()
+			->update($this->itemTable, array(
+				'name'=>$item->getName(),
+				'type'=>$item->getType(),
+				'description'=>$item->getDescription(),
+				'bizrule'=>$item->getBizRule(),
+				'data'=>serialize($item->getData()),
+			), 'name=:whereName', array(
+				':whereName'=>$oldName===null?$item->getName():$oldName,
+			));
 	}
 
 	/**
@@ -499,8 +548,8 @@ class CDbAuthManager extends CAuthManager
 	public function clearAll()
 	{
 		$this->clearAuthAssignments();
-		$this->db->createCommand("DELETE FROM {$this->itemChildTable}")->execute();
-		$this->db->createCommand("DELETE FROM {$this->itemTable}")->execute();
+		$this->db->createCommand()->delete($this->itemChildTable);
+		$this->db->createCommand()->delete($this->itemTable);
 	}
 
 	/**
@@ -508,7 +557,7 @@ class CDbAuthManager extends CAuthManager
 	 */
 	public function clearAuthAssignments()
 	{
-		$this->db->createCommand("DELETE FROM {$this->assignmentTable}")->execute();
+		$this->db->createCommand()->delete($this->assignmentTable);
 	}
 
 	/**
@@ -537,7 +586,7 @@ class CDbAuthManager extends CAuthManager
 	{
 		if($this->db!==null)
 			return $this->db;
-		else if(($this->db=Yii::app()->getComponent($this->connectionID)) instanceof CDbConnection)
+		elseif(($this->db=Yii::app()->getComponent($this->connectionID)) instanceof CDbConnection)
 			return $this->db;
 		else
 			throw new CException(Yii::t('yii','CDbAuthManager.connectionID "{id}" is invalid. Please make sure it refers to the ID of a CDbConnection application component.',

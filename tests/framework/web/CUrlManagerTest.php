@@ -1,34 +1,6 @@
 <?php
 
 Yii::import('system.web.CUrlManager');
-Yii::import('system.web.CHttpRequest');
-
-class TestHttpRequest extends CHttpRequest
-{
-	private $myPathInfo;
-	private $myScriptUrl;
-
-	public function getScriptUrl()
-	{
-		return $this->myScriptUrl;
-	}
-
-	public function setScriptUrl($value)
-	{
-		$this->myScriptUrl=$value;
-	}
-
-	public function getPathInfo()
-	{
-		return $this->myPathInfo;
-	}
-
-	public function setPathInfo($value)
-	{
-		$this->myPathInfo=$value;
-	}
-}
-
 
 class CUrlManagerTest extends CTestCase
 {
@@ -45,6 +17,10 @@ class CUrlManagerTest extends CTestCase
 			'<c:(post|comment)>/<id:\d+>'=>'<c>/view',
 			'<c:(post|comment)>s/*'=>'<c>/list',
 			'http://<user:\w+>.example.com/<lang:\w+>/profile'=>'user/profile',
+			'currency/<c:\p{Sc}>'=>'currency/info',
+			'url*with+special.symbols'=>'controller1/action',
+			'<name:\w+>.<ext:\w+>'=>'controller2/action',
+			'<name:\w+>*<ext:\w+>'=>'controller3/action',
 		);
 		$entries=array(
 			array(
@@ -142,6 +118,31 @@ class CUrlManagerTest extends CTestCase
 				'route'=>'user/profile',
 				'params'=>array('user'=>'admin','lang'=>'en'),
 			),
+			array(
+				'pathInfo'=>'currency/＄',
+				'route'=>'currency/info',
+				'params'=>array('c'=>'＄'),
+			),
+			array(
+				'pathInfo'=>'url*with+special.symbols',
+				'route'=>'controller1/action',
+				'params'=>array(),
+			),
+			array(
+				'pathInfo'=>'picture.jpg',
+				'route'=>'controller2/action',
+				'params'=>array('name'=>'picture','ext'=>'jpg'),
+			),
+			array(
+				'pathInfo'=>'urlwithoutadot',
+				'route'=>'urlwithoutadot',
+				'params'=>array(),
+			),
+			array(
+				'pathInfo'=>'picture*jpg',
+				'route'=>'controller3/action',
+				'params'=>array('name'=>'picture','ext'=>'jpg'),
+			),
 		);
 		$config=array(
 			'basePath'=>dirname(__FILE__),
@@ -180,6 +181,7 @@ class CUrlManagerTest extends CTestCase
 	public function testcreateUrlWithPathFormat()
 	{
 		$rules=array(
+			'<name:\w+>.<ext:\w+>'=>'controller2/action',
 			'article/<id:\d+>'=>'article/read',
 			'article/<year:\d{4}>/<title>/*'=>'article/read',
 			'a/<_a>/*'=>'article',
@@ -189,6 +191,9 @@ class CUrlManagerTest extends CTestCase
 			'<c:(post|comment)>/<id:\d+>'=>'<c>/view',
 			'<c:(post|comment)>s/*'=>'<c>/list',
 			'http://<user:\w+>.example.com/<lang:\w+>/profile'=>'user/profile',
+			'currency/<c:\p{Sc}>'=>'currency/info',
+			'url*with+special.symbols'=>'controller1/action',
+			'<name:\w+>*<ext:\w+>'=>'controller3/action',
 		);
 		$config=array(
 			'basePath'=>dirname(__FILE__),
@@ -312,29 +317,68 @@ class CUrlManagerTest extends CTestCase
 					'lang'=>'en',
 				),
 			),
+			array(
+				'scriptUrl'=>'/index.php',
+				'url'=>'/index.php/currency/%EF%BC%84',
+				'url2'=>'/currency/%EF%BC%84',
+				'url3'=>'/currency/%EF%BC%84.html',
+				'route'=>'currency/info',
+				'params'=>array(
+					'c'=>'＄',
+				),
+			),
+			array(
+				'scriptUrl'=>'/index.php',
+				'route'=>'controller1/action',
+				'params'=>array(),
+				'url'=>'/index.php/url*with+special.symbols',
+				'url2'=>'/url*with+special.symbols',
+				'url3'=>'/url*with+special.symbols.html',
+			),
+			array(
+				'scriptUrl'=>'/index.php',
+				'route'=>'controller2/action',
+				'params'=>array('name'=>'picture','ext'=>'jpg'),
+				'url'=>'/index.php/picture.jpg',
+				'url2'=>'/picture.jpg',
+				'url3'=>'/picture.jpg.html',
+			),
+			array(
+				'scriptUrl'=>'/index.php',
+				'route'=>'controller3/action',
+				'params'=>array('name'=>'picture','ext'=>'jpg'),
+				'url'=>'/index.php/picture*jpg',
+				'url2'=>'/picture*jpg',
+				'url3'=>'/picture*jpg.html',
+			),
 		);
 		foreach($entries as $entry)
 		{
 			$app->request->baseUrl=null; // reset so that it can be determined based on scriptUrl
 			$app->request->scriptUrl=$entry['scriptUrl'];
-			$um=new CUrlManager;
-			$um->urlFormat='path';
-			$um->rules=$rules;
-			$um->init($app);
-			$url=$um->createUrl($entry['route'],$entry['params']);
-			$this->assertEquals($entry['url'],$url);
+			for($matchValue=0;$matchValue<2;$matchValue++)
+			{
+				$um=new CUrlManager;
+				$um->urlFormat='path';
+				$um->rules=$rules;
+				$um->matchValue=$matchValue!=0;
+				$um->init($app);
+				$url=$um->createUrl($entry['route'],$entry['params']);
+				$this->assertEquals($entry['url'],$url,'matchValue='.($um->matchValue ? 'true' : 'false'));
 
-			$um=new CUrlManager;
-			$um->urlFormat='path';
-			$um->rules=$rules;
-			$um->init($app);
-			$um->showScriptName=false;
-			$url=$um->createUrl($entry['route'],$entry['params']);
-			$this->assertEquals($entry['url2'],$url);
+				$um=new CUrlManager;
+				$um->urlFormat='path';
+				$um->rules=$rules;
+				$um->matchValue=$matchValue!=0;
+				$um->init($app);
+				$um->showScriptName=false;
+				$url=$um->createUrl($entry['route'],$entry['params']);
+				$this->assertEquals($entry['url2'],$url,'matchValue='.($um->matchValue ? 'true' : 'false'));
 
-			$um->urlSuffix='.html';
-			$url=$um->createUrl($entry['route'],$entry['params']);
-			$this->assertEquals($entry['url3'],$url);
+				$um->urlSuffix='.html';
+				$url=$um->createUrl($entry['route'],$entry['params']);
+				$this->assertEquals($entry['url3'],$url,'matchValue='.($um->matchValue ? 'true' : 'false'));
+			}
 		}
 	}
 

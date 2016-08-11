@@ -18,9 +18,9 @@ Jeśli nie chcesz by Yii zarządzało błędami i wyjątkami, musisz zdefiniowa�
 `YII_ENABLE_ERROR_HANDLER` oraz `YII_ENABLE_EXCEPTION_HANDLER` i przypisać jej wartość false w 
 [skrypcie wejściowym](/doc/guide/basics.entry).
 
-Domyślnie, [errorHandler|CApplication::errorHandler] (lub
-[exceptionHandler|CApplication::exceptionHandler]) wywoła zdarzenie 
-[onError|CApplication::onError] (lub zdarzenie [onException|CApplication::onException]). 
+Domyślnie, [handleError|CApplication::handleError] (lub
+[handleException|CApplication::handleException]) wywoła zdarzenie 
+[onError|CApplication::onError] (lub [onException|CApplication::onException]). 
 Jeśli błąd (lub wyjątek) nie zostanie przechwycony przez żaden kontroler błędów
 to wezwie na pomoc komponent aplikacji [errorHandler|CErrorHandler].
 
@@ -35,9 +35,10 @@ Można użyć następującej składni aby zgłosić wyjątek, gdy nastąpi taka 
 throw new ExceptionClass('ExceptionMessage');
 ~~~
 
-Yii definiuje dwie klasy wyjątków: [CException] oraz [CHttpException]. Pierwsza  
-jest ogólną klasą wyjątków, druga zaś reprezentuje wyjątek, które powinien być 
-wyświetlony użytkownikowi końcowemu. Druga klasa posiada również właściwość 
+Yii definiuje trzy klasy wyjątków: [CException], [CDbException] oraz [CHttpException]. 
+[CException] jest ogólną klasą wyjątków. [CDbException] reprezentuje wyjątek powodowany
+przez pewne operacje związane z bazą danych. [CHttpException] reprezentuje wyjątek, który powinien być 
+wyświetlony użytkownikowi końcowemu. Przenosi on również właściwość 
 [statusCode|CHttpException::statusCode] reprezentującą kod statusu w HTTP. 
 Klasa wyjątku określa jak powinien być on wyświetlony, co wyjaśnimy w dalszej części.
 
@@ -55,10 +56,10 @@ Wyświetlanie błędów
 -----------------
 
 Gdy błąd jest przekazywany do komponentu aplikacji [CErrorHandler], to wybierany 
-jest odpowiedni widok w celu wyświetlenia błędu. Jeśli błąd jest przewidziany  
+jest odpowiedni widok w celu wyświetlenia błędu. Jeśli błąd jest przewidziany 
 do wyświetlenia użytkownikowi końcowemu, tak jak [CHttpException] użyje on widoku
 nazwanego `errorXXX`, gdzie `XXX` oznacza kod statusu HTTP (np.
-400, 404, 500). Jeśli błąd jest błędem wewnętrznym i powinien być pokazany jedynie  
+400, 404, 500). Jeśli błąd jest błędem wewnętrznym i powinien być pokazany jedynie 
 deweloperowi, użyje widoku nazwanego `exception`. W ostatnim przypadku, kompletny
 stos wywołań, jak również linia wystąpienia błędu zostaną wyświetlone.
 
@@ -67,7 +68,7 @@ wszystkie błędy, włączając w to wewnętrzne będą wyświetlone przy użyci
 `errorXXX`. Dzieje się tak, ponieważ stos wywołań może zawierać ważne informacje.  
 W tym przypadku deweloperzy powinni polegać na logu błędów aby odnaleźć prawdziwą przyczynę błędu.
 
-[CErrorHandler] szuka pliku odpowiedniego pliku widoku w następującym porządku:
+[CErrorHandler] szuka odpowiedniego pliku widoku w następującym porządku:
 
    1. `WebRoot/themes/ThemeName/views/system`: `system` jest to systemowy folder widoków 
    dla aktualnie aktywnego tematu.
@@ -137,7 +138,7 @@ W rezultacie, w widoku możemy bezpośrednio odwołać się do zmiennych takich 
 Logowanie komunikatów
 ---------------
 
-Komunikat o poziomie `błędu` będzie zawsze logowane jeśli wystąpi błąd. Jeśli jest to
+Komunikat o poziomie `błędu` będzie zawsze logowany jeśli wystąpi błąd. Jeśli jest to
 błąd spowodowany przez ostrzeżenie lub wiadomość PHP, komunikat będzie zalogowany
 przy użyciu kategorii `php`; jeśli błąd spowodowany jest przez nieprzechwycony wyjątek 
 kategorią będzie `exception.ExceptionClassName` (dla [CHttpException] jego 
@@ -145,4 +146,4 @@ kategorią będzie `exception.ExceptionClassName` (dla [CHttpException] jego
 Można więc wykorzystać tą funkcjonalność [logowania](/doc/guide/topics.logging)
 do monitorowania błędów powstałych podczas działania aplikacji.
 
-<div class="revision">$Id: topics.error.txt 2890 2011-01-18 15:58:34Z qiang.xue $</div>
+<div class="revision">$Id: topics.error.txt 3374 2011-08-05 23:01:19Z alexander.makarow $</div>

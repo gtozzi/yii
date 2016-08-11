@@ -63,7 +63,7 @@ protected function newComment($post)
 		if($post->addComment($comment))
 		{
 			if($comment->status==Comment::STATUS_PENDING)
-				Yii::app()->user->setFlash('commentSubmitted','Thank you...');
+				Yii::app()->user->setFlash('commentSubmitted','Thank you for your comment. Your comment will be posted once it is approved.');
 			$this->refresh();
 		}
 	}
@@ -71,7 +71,22 @@ protected function newComment($post)
 }
 ~~~
 
-In the above, we call the `newComment()` method before we render `view`. In the `newComment()` method, we generate a `Comment` instance and check if the comment form is submitted. If so, we try to add the comment for the post by calling `$post->addComment($comment)`. If it goes through, we refresh the post detail page. In case the comment needs to be approved, we will show a flash message to indicate this decision. A flash message is usually a confirmation message displayed to end users. If the user clicks on the refresh button of his browser, the message will disappear.
+And then we modify the `Post` model class by adding the method `addComment()` as follows,
+
+~~~
+[php]
+public function addComment($comment)
+{
+	if(Yii::app()->params['commentNeedApproval'])
+		$comment->status=Comment::STATUS_PENDING;
+	else
+		$comment->status=Comment::STATUS_APPROVED;
+	$comment->post_id=$this->id;
+	return $comment->save();
+}
+~~~
+
+In the above, we call the `newComment()` method before we render `view`. In the `newComment()` method, we generate a `Comment` instance and check if the comment form is submitted. If so, we try to add the comment for the post by calling `$post->addComment($comment)`. If it goes through, we refresh the post detail page, which will display the newly created comment unless approval is required. In the case where the comment first requires approval prior to display, we will show a flash message to indicate to the user that the comment will be displayed once approved. A flash message is usually a confirmation message displayed to end users. If the user clicks on the refresh button of his browser, the message will disappear.
 
 We also need to modify `/wwwroot/blog/protected/views/post/view.php` furthermore,
 
@@ -98,10 +113,10 @@ We also need to modify `/wwwroot/blog/protected/views/post/view.php` furthermore
 In the above code, we display the flash message if it is available. If not, we display the comment input form by rendering the partial view `/wwwroot/blog/protected/views/comment/_form.php`.
 
 
-Client-side Validation
+Ajax-based Validation
 ----------------------
 
-In order to support client-side validation of the comment form, we need to make some minor changes to both the comment form view `/wwwroot/blog/protected/views/comment/_form.php` and the `newComment()` method.
+In order to improve user experience, we can use Ajax-based form field validation so that the user is provided with validation feedback as they fill out the form, before having to submit the entire form to the server. To support Ajax-based validation on the comment form, we need to make some minor changes to both the comment form view `/wwwroot/blog/protected/views/comment/_form.php` and the `newComment()` method.
 
 In the `_form.php` file, we mainly need to set [CActiveForm::enableAjaxValidation] to be true when we create the [CActiveForm] widget:
 
@@ -139,7 +154,7 @@ protected function newComment($post)
 		if($post->addComment($comment))
 		{
 			if($comment->status==Comment::STATUS_PENDING)
-				Yii::app()->user->setFlash('commentSubmitted','Thank you...');
+				Yii::app()->user->setFlash('commentSubmitted','Thank you for your comment. Your comment will be posted once it is approved.');
 			$this->refresh();
 		}
 	}
@@ -147,4 +162,3 @@ protected function newComment($post)
 }
 ~~~
 
-<div class="revision">$Id$</div>

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2011 Yii Software LLC
+ * @copyright 2008-2013 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -23,19 +23,18 @@
  *      'attribute'=>'files',
  *      'accept'=>'jpg|gif',
  *      'options'=>array(
- *         'onFileSelect'=>'function(element, value, master){ alert("onFileSelect - "+value) }',
- *         'afterFileSelect'=>'function(element, value, master){ alert("afterFileSelect - "+value) }'
- *         'onFileAppend'=>'function(element, value, master){ alert("onFileAppend - "+value) }',
- *         'afterFileAppend'=>'function(element, value, master){ alert("afterFileAppend - "+value) }',
- *         'onFileRemove'=>'function(element, value, master){ alert("onFileRemove - "+value) }',
- *         'afterFileRemove'=>'function(element, value, master){ alert("afterFileRemove - "+value) }',
+ *         'onFileSelect'=>'function(e, v, m){ alert("onFileSelect - "+v) }',
+ *         'afterFileSelect'=>'function(e, v, m){ alert("afterFileSelect - "+v) }',
+ *         'onFileAppend'=>'function(e, v, m){ alert("onFileAppend - "+v) }',
+ *         'afterFileAppend'=>'function(e, v, m){ alert("afterFileAppend - "+v) }',
+ *         'onFileRemove'=>'function(e, v, m){ alert("onFileRemove - "+v) }',
+ *         'afterFileRemove'=>'function(e, v, m){ alert("afterFileRemove - "+v) }',
  *      ),
  *   ));
  * ?>
  * </pre>
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id$
  * @package system.web.widgets
  * @since 1.0
  */
@@ -98,12 +97,11 @@ class CMultiFileUpload extends CInputWidget
 
 	/**
 	 * Registers the needed CSS and JavaScript.
-	 * @since 1.0.1
 	 */
 	public function registerClientScript()
 	{
 		$id=$this->htmlOptions['id'];
-		
+
 		$options=$this->getClientOptions();
 		$options=$options===array()? '' : CJavaScript::encode($options);
 
@@ -120,8 +118,8 @@ class CMultiFileUpload extends CInputWidget
 		$options=$this->options;
 		foreach(array('onFileRemove','afterFileRemove','onFileAppend','afterFileAppend','onFileSelect','afterFileSelect') as $event)
 		{
-			if(isset($options[$event]) && strpos($options[$event],'js:')!==0)
-				$options[$event]='js:'.$options[$event];
+			if(isset($options[$event]) && !($options[$event] instanceof CJavaScriptExpression))
+				$options[$event]=new CJavaScriptExpression($options[$event]);
 		}
 
 		if($this->accept!==null)

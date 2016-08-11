@@ -5,7 +5,7 @@
 
 Для большей интерактивности будем проводить валидацию на стороне клиента.
 При помощи Yii сделать это довольно легко. Отметим, что для этого потребуется
-Yii версии 1.1.1 и старше.
+Yii версии 1.1.1 или новее.
 
 Отображение комментариев
 ------------------------
@@ -39,7 +39,7 @@ Yii версии 1.1.1 и старше.
 Выше мы вызываем `renderPartial()` для вывода отображения `_comments`, показывающего
 список комментариев к текущей записи. Заметим, что в отображении, для получения
 комментариев к записи, мы используем выражение `$model->comments`. Это возможно
-так как мы объявили отношение `comments` в классе `Post`. Выполнение этого
+так как мы объявили связь `comments` в классе `Post`. Выполнение этого
 выражения вызывает дополнительный JOIN-запрос к БД, чтобы возвратить
 нужные комментарии. Эта возможность известна как [ленивая загрузка](/doc/guide/ru/database.arr).
 
@@ -75,7 +75,8 @@ protected function newComment($post)
 		if($post->addComment($comment))
 		{
 			if($comment->status==Comment::STATUS_PENDING)
-				Yii::app()->user->setFlash('commentSubmitted','Thank you...');
+				Yii::app()->user->setFlash('commentSubmitted','Thank you for your comment.
+				Your comment will be posted once it is approved.');
 			$this->refresh();
 		}
 	}
@@ -83,13 +84,30 @@ protected function newComment($post)
 }
 ~~~
 
+Далее мы добавляем метод `addComment()` в модель `Post`:
+
+~~~
+[php]
+public function addComment($comment)
+{
+	if(Yii::app()->params['commentNeedApproval'])
+		$comment->status=Comment::STATUS_PENDING;
+	else
+		$comment->status=Comment::STATUS_APPROVED;
+	$comment->post_id=$this->id;
+	return $comment->save();
+}
+~~~
+
+
 Выше мы вызываем метод `newComment()` перед показом представления `view`.
 В методе `newComment()` мы создаем экземпляр класса `Comment` и проверяем,
 отправлена ли форма комментария.  Если отправлена — пробуем добавить комментарий
 к записи, вызывая `$post->addComment($comment)`. Если получилось — обновляем
-страницу записи. В том случае, если комментарий требует предварительного одобрения,
-показываем соответствующее моментальное сообщение. Моментальное сообщение обычно
-выводится для подтверждения какого-то действия. Если пользователь обновляет
+страницу записи, на которой будет показан только что созданный комментарий в том случае,
+если он не требует одобрения. В противном случае показываем моментальное сообщение о
+том, что комментарий будет показан как только он будет одобрен. Моментальное сообщение
+обычно выводится для подтверждения какого-то действия. Если пользователь обновляет
 страницу, такое сообщение исчезает.
 
 Продолжаем изменять `/wwwroot/blog/protected/views/post/view.php`:
@@ -115,15 +133,15 @@ protected function newComment($post)
 ~~~
 
 В приведённом выше коде мы показываем моментальное сообщение, если оно есть.
-В обратном случае — показываем форму ввода комменария из файла
+В обратном случае — показываем форму ввода комментария из файла
 `/wwwroot/blog/protected/views/comment/_form.php`.
 
-Валидация на стороне клиента
-----------------------------
+AJAX валидация
+--------------
 
-Так как мы собираемся проводить валидацию на стороне клиента, необходимо немного
-изменить отображение формы комментариев `/wwwroot/blog/protected/views/comment/_form.php`
-и добавить метод `newComment()`.
+Для того, чтобы улучшить удобство формы, можно использовать AJAX валидацию полей формы. В этом случае пользователь
+получает информацию об ошибках по мере заполнения формы. Для использования данной возможности в форме комментариев
+необходимо сделать несколько изменений в отображении `/wwwroot/blog/protected/views/comment/_form.php` и методе `newComment()`.
 
 В файле `_form.php` нам необходимо установить свойство [CActiveForm::enableAjaxValidation]
 для виджета [CActiveForm] в `true`:
@@ -164,12 +182,10 @@ protected function newComment($post)
 		if($post->addComment($comment))
 		{
 			if($comment->status==Comment::STATUS_PENDING)
-				Yii::app()->user->setFlash('commentSubmitted','Спасибо!');
+				Yii::app()->user->setFlash('commentSubmitted','Thank you for your comment. Your comment will be posted once it is approved.');
 			$this->refresh();
 		}
 	}
 	return $comment;
 }
 ~~~
-
-<div class="revision">$Id: comment.create.txt 2772 2010-12-24 16:24:12Z alexander.makarow $</div>

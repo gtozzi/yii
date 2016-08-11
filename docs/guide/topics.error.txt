@@ -19,8 +19,8 @@ If you do not want Yii to handle the errors and exceptions, you may define
 constant `YII_ENABLE_ERROR_HANDLER` and `YII_ENABLE_EXCEPTION_HANDLER` to
 be false in the [entry script](/doc/guide/basics.entry).
 
-By default, [errorHandler|CApplication::errorHandler] (or
-[exceptionHandler|CApplication::exceptionHandler]) will raise an
+By default, [handleError|CApplication::handleError] (or
+[handleException|CApplication::handleException]) will raise an
 [onError|CApplication::onError] event (or
 [onException|CApplication::onException] event). If the error (or exception)
 is not handled by any event handler, it will call for help from the
@@ -37,10 +37,11 @@ exception. One uses the following syntax to raise an exception when needed:
 throw new ExceptionClass('ExceptionMessage');
 ~~~
 
-Yii defines two exception classes: [CException] and [CHttpException]. The
-former is a generic exception class, while the latter represents an
-exception that should be displayed to end users. The latter also carries a
-[statusCode|CHttpException::statusCode] property representing an HTTP
+Yii defines three exception classes: [CException], [CDbException] and
+[CHttpException]. [CException] is a generic exception class. [CDbException]
+represents an exception that is caused by some DB-related operations.
+[CHttpException] represents an exception that should be displayed to end users
+and carries a [statusCode|CHttpException::statusCode] property representing an HTTP
 status code. The class of an exception determines how it should be
 displayed, as we will explain next.
 
@@ -156,4 +157,4 @@ category would be `exception.ExceptionClassName` (for [CHttpException] its
 category). One can thus exploit the [logging](/doc/guide/topics.logging)
 feature to monitor errors happened during application execution.
 
-<div class="revision">$Id$</div>
+

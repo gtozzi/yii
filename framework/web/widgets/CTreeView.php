@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2011 Yii Software LLC
+ * @copyright 2008-2013 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -21,7 +21,6 @@
  * {@link url} to be the URL that can serve the tree view data upon request.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id$
  * @package system.web.widgets
  * @since 1.0
  */
@@ -147,7 +146,7 @@ class CTreeView extends CWidget
 		$cs->registerScript('Yii.CTreeView#'.$id,"jQuery(\"#{$id}\").treeview($options);");
 		if($this->cssFile===null)
 			$cs->registerCssFile($cs->getCoreScriptUrl().'/treeview/jquery.treeview.css');
-		else if($this->cssFile!==false)
+		elseif($this->cssFile!==false)
 			$cs->registerCssFile($this->cssFile);
 
 		echo CHtml::tag('ul',$this->htmlOptions,false,false)."\n";
@@ -206,9 +205,10 @@ class CTreeView extends CWidget
 				$options=isset($node['htmlOptions']) ? $node['htmlOptions'] : array();
 				if($css!=='')
 				{
-					if(isset($options['css']))
-						$options['css'].=' ';
-					$options['css'].=$css;
+					if(isset($options['class']))
+						$options['class'].=' '.$css;
+					else
+						$options['class']=$css;
 				}
 
 				if(isset($node['id']))

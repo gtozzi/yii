@@ -155,7 +155,7 @@ tillhörande en specifik utvidgningsklass (t.ex. en widget, en modul) hanteras o
 specialiserat. Mer specifikt, om ett meddelande tillhör en utvidgning vars klassnamn är `Xyz`, 
 kan meddelandekategorin specifieras på formatet `Xyz.categoryName`. Motsvarande meddelandefil antas 
 vara `BasePath/messages/LanguageID/categoryName.php`, där `BasePath` refererar till katalogen som 
-innehåller utvidgningens klassfil . När Yii::t()` används för att översätta meddelanden från en 
+innehåller utvidgningens klassfil . När `Yii::t()` används för att översätta meddelanden från en 
 utvidgning, kommer formatet då att bli:
 
 ~~~
@@ -276,18 +276,18 @@ om meddelandeöversättningen är
 
 ~~~
 [php]
-'{n} cucumber|{n} cucumbers' => '{n} Ð¾Ð³ÑƒÑ€ÐµÑ†|{n} Ð¾Ð³ÑƒÑ€Ñ†Ð°|{n} Ð¾Ð³ÑƒÑ€Ñ†Ð¾Ð²|{n} Ð¾Ð³ÑƒÑ€Ñ†Ð°',
+'{n} cucumber|{n} cucumbers' => '{n} огурец|{n} огурца|{n} огурцов|{n} огурца',
 ~~~
 
 blir resultatet
 
 ~~~
-62 Ð¾Ð³ÑƒÑ€Ñ†Ð°
-1.5 Ð¾Ð³ÑƒÑ€Ñ†Ð°
-1 Ð¾Ð³ÑƒÑ€ÐµÑ†
-7 Ð¾Ð³ÑƒÑ€Ñ†Ð¾Ð²
+62 огурца
+1.5 огурца
+1 огурец
+7 огурцов
 ~~~
-
+ 
 
 > Info: För detaljer om hur många värden som skall lämnas med och i vilken ordning, 
 vänligen se CLDR [Language Plural Rules page](http://unicode.org/repos/cldr-tmp/trunk/diff/supplemental/language_plural_rules.html).

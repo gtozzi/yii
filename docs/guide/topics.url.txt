@@ -1,12 +1,18 @@
 URL Management
 ==============
 
-Complete URL management for a Web application involves two aspects. First,
-when a user request comes in terms of a URL, the application needs to parse
-it into understandable parameters. Second, the application needs to provide
-a way of creating URLs so that the created URLs can be understood by the
-application. For a Yii application, these are accomplished with the help
-of [CUrlManager].
+Complete URL management for a Web application involves two aspects:
+
+1. When a user request comes in terms of a URL, the application needs to parse
+it into understandable parameters.
+2. The application needs to provide a way of creating URLs so that the
+created URLs can be understood by the application.
+
+For a Yii application, these are accomplished with the help of [CUrlManager].
+
+> Note: You can specify URLs without using Yii but it is not recommended
+  since you will not be able to easily change URLs via configuration without
+  touching application code or to achieve application portability.
 
 Creating URLs
 -------------
@@ -35,6 +41,10 @@ where parameters appear in the query string as a list of `Name=Value`
 concatenated with the ampersand characters, and the `r` parameter specifies
 the request [route](/doc/guide/basics.controller#route). This URL format
 is not very user-friendly because it requires several non-word characters.
+
+> Tip: In order to generate URL with a hashtag, for example
+  `/index.php?r=post/read&id=100#title`, you need to specify parameter named `#`
+  using `$this->createUrl('post/read',array('id'=>100,'#'=>'title'))`.
 
 We could make the above URL look cleaner and more self-explanatory by
 using the so-called `path` format which eliminates the query string and
@@ -135,9 +145,9 @@ meaning using the value of [CUrlManager::urlSuffix].
    - [caseSensitive|CUrlRule::caseSensitive]: whether this rule is case sensitive. Defaults to null,
 meaning using the value of [CUrlManager::caseSensitive].
 
-   - [defaultParams|CUrlRule::defaultParams]: the default GET parameters (name=>value) that this rule provides.
+   - [defaultParams|CUrlRule::defaultParams]: the default GET parameters (`name=>value`) that this rule provides.
 When this rule is used to parse the incoming request, the values declared in this property
-will be injected into $_GET.
+will be injected into `$_GET`.
 
    - [matchValue|CUrlRule::matchValue]: whether the GET parameter values should match the corresponding
 sub-patterns in the rule when creating a URL. Defaults to null,
@@ -258,7 +268,7 @@ while the latter matches an action ID to be `create`, `update` or `delete`.
 You may name the parameters differently as long as they do not conflict with
 GET parameters that may appear in URLs.
 
-Using the aboving rules, the URL `/index.php/post/123/create`
+Using the above rules, the URL `/index.php/post/123/create`
 would be parsed as the route `post/create` with GET parameter `id=123`.
 And given the route `comment/list` and GET parameter `page=2`, we can create a URL
 `/index.php/comments?page=2`.
@@ -271,7 +281,7 @@ It is also possible to include hostname into the rules
 for parsing and creating URLs. One may extract part of the hostname to be a GET parameter.
 For example, the URL `http://admin.example.com/en/profile` may be parsed into GET parameters
 `user=admin` and `lang=en`. On the other hand, rules with hostname may also be used to
-create URLs with paratermized hostnames.
+create URLs with parameterized hostnames.
 
 In order to use parameterized hostnames, simply declare URL rules with host info, e.g.:
 
@@ -338,4 +348,91 @@ to a static Web page. To do so, simply configure the
 [urlManager|CWebApplication::urlManager] component by setting its
 [urlSuffix|CUrlManager::urlSuffix] property to the suffix you like.
 
-<div class="revision">$Id$</div>
+
+Using Custom URL Rule Classes
+-----------------------------
+
+> Note: Using custom URL rule classes has been supported since version 1.1.8.
+
+By default, each URL rule declared with [CUrlManager] is represented as
+a [CUrlRule] object which performs the task of parsing requests and creating URLs
+based on the rule specified. While [CUrlRule] is flexible enough to handle most
+URL formats, sometimes we still want to enhance it with special features.
+
+For example, in a car dealer website, we may want to support the URL format like
+`/Manufacturer/Model`, where `Manufacturer` and `Model` must both match some data in
+a database table. The [CUrlRule] class will not work because it mostly relies
+on statically declared regular expressions which have no database knowledge.
+
+We can write a new URL rule class by extending from [CBaseUrlRule] and use it in one
+or multiple URL rules. Using the above car dealer website as an example,
+we may declare the following URL rules,
+
+~~~
+[php]
+array(
+	// a standard rule mapping '/' to 'site/index' action
+	'' => 'site/index',
+
+	// a standard rule mapping '/login' to 'site/login', and so on
+	'<action:(login|logout|about)>' => 'site/<action>',
+
+	// a custom rule to handle '/Manufacturer/Model'
+	array(
+	    'class' => 'application.components.CarUrlRule',
+	    'connectionID' => 'db',
+	),
+
+	// a standard rule to handle 'post/update' and so on
+	'<controller:\w+>/<action:\w+>' => '<controller>/<action>',
+),
+~~~
+
+In the above, we use the custom URL rule class `CarUrlRule` to handle
+the URL format `/Manufacturer/Model`. The class can be written like the following:
+
+~~~
+[php]
+class CarUrlRule extends CBaseUrlRule
+{
+	public $connectionID = 'db';
+
+	public function createUrl($manager,$route,$params,$ampersand)
+	{
+		if ($route==='car/index')
+		{
+			if (isset($params['manufacturer'], $params['model']))
+				return $params['manufacturer'] . '/' . $params['model'];
+			else if (isset($params['manufacturer']))
+				return $params['manufacturer'];
+		}
+		return false;  // this rule does not apply
+	}
+
+	public function parseUrl($manager,$request,$pathInfo,$rawPathInfo)
+	{
+		if (preg_match('%^(\w+)(/(\w+))?$%', $pathInfo, $matches))
+		{
+			// check $matches[1] and $matches[3] to see
+			// if they match a manufacturer and a model in the database
+			// If so, set $_GET['manufacturer'] and/or $_GET['model']
+			// and return 'car/index'
+		}
+		return false;  // this rule does not apply
+	}
+}
+~~~
+
+The custom URL class must implement the two abstract methods declared in [CBaseUrlRule]:
+
+* [createUrl()|CBaseUrlRule::createUrl()]
+* [parseUrl()|CBaseUrlRule::parseUrl()]
+
+Besides the above typical usage, custom URL rule classes can also be implemented
+for many other purposes. For example, we can write a rule class to log the URL parsing
+and creation requests. This may be useful during development stage. We can also
+write a rule class to display a special 404 error page in case all other URL rules fail
+to resolve the current request. Note that in this case, the rule of this special class
+must be declared as the last rule.
+
+

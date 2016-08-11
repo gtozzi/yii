@@ -4,9 +4,12 @@ Yii::import('system.db.CDbConnection');
 Yii::import('system.db.ar.CActiveRecord');
 
 require_once(dirname(__FILE__).'/../data/models.php');
+require_once(dirname(__FILE__).'/../data/models2.php');
 
 class CActiveRecordTest extends CTestCase
 {
+	protected $backupStaticAttributes = true;
+
 	private $_connection;
 
 	protected function setUp()
@@ -99,6 +102,9 @@ class CActiveRecordTest extends CTestCase
 		$this->assertEquals(2,$post->id);
 
 		$post=Post::model()->findByPk(array());
+		$this->assertNull($post);
+
+		$post=Post::model()->findByPk(null);
 		$this->assertNull($post);
 
 		$post=Post::model()->findByPk(6);
@@ -197,6 +203,17 @@ class CActiveRecordTest extends CTestCase
 		$this->assertEquals(1,Post::model()->findByPk(3)->author_id);
 	}
 
+	public function testSaveCounters()
+	{
+		$post=Post::model()->findByPk(2);
+		$this->assertEquals(2, $post->author_id);
+		$result=$post->saveCounters(array('author_id'=>-1));
+		$this->assertTrue($result);
+		$this->assertEquals(1, $post->author_id);
+		$this->assertEquals(1, Post::model()->findByPk(2)->author_id);
+		$this->assertEquals(2, Post::model()->findByPk(3)->author_id);
+	}
+
 	public function testDelete()
 	{
 		$post=Post::model()->findByPk(1);
@@ -221,6 +238,12 @@ class CActiveRecordTest extends CTestCase
 		$post2->title='new post';
 		$post2->save();
 		$this->assertEquals('post 1',$post->title);
+		$this->assertTrue($post->refresh());
+		$this->assertEquals('new post',$post->title);
+
+		$post = new Post();
+		$this->assertFalse($post->refresh());
+		$post->id = 1;
 		$this->assertTrue($post->refresh());
 		$this->assertEquals('new post',$post->title);
 	}
@@ -279,8 +302,8 @@ class CActiveRecordTest extends CTestCase
 		$this->assertEquals(1.23,$type->float_col2);
 		$this->assertEquals(33.22,$type->numeric_col);
 		$this->assertEquals(123,$type->time);
-		$this->assertEquals(null,$type->bool_col);
-		$this->assertEquals(true,$type->bool_col2);
+		$this->assertNull($type->bool_col);
+		$this->assertTrue($type->bool_col2);
 	}
 
 	public function testPublicAttribute()
@@ -691,6 +714,43 @@ class CActiveRecordTest extends CTestCase
 		$this->assertEquals(4,count($users));
 	}
 
+	/**
+	 * @depends testRelationalStat
+	 * @see https://github.com/yiisoft/yii/issues/873
+	 */
+	public function testRelationalStatWithScopes()
+	{
+		// CStatRelation with scopes, HAS_MANY case
+		$users=User::model()->findAll();
+		// user1
+		$this->assertEquals(0,$users[0]->recentPostCount1);
+		$this->assertEquals(0,$users[0]->recentPostCount2);
+		// user2
+		$this->assertEquals(2,$users[1]->recentPostCount1);
+		$this->assertEquals(2,$users[1]->recentPostCount2);
+		// user3
+		$this->assertEquals(1,$users[2]->recentPostCount1);
+		$this->assertEquals(1,$users[2]->recentPostCount2);
+		// user4
+		$this->assertEquals(0,$users[3]->recentPostCount1);
+		$this->assertEquals(0,$users[3]->recentPostCount2);
+
+		// CStatRelation with scopes, MANY_MANY case
+		$categories=Category::model()->findAll();
+		// category1
+		$this->assertEquals(2,$categories[0]->recentPostCount1);
+		$this->assertEquals(2,$categories[0]->recentPostCount2);
+		// category2
+		$this->assertEquals(0,$categories[1]->recentPostCount1);
+		$this->assertEquals(0,$categories[1]->recentPostCount2);
+		// category3
+		$this->assertEquals(0,$categories[2]->recentPostCount1);
+		$this->assertEquals(0,$categories[2]->recentPostCount2);
+		// category4
+		$this->assertEquals(1,$categories[3]->recentPostCount1);
+		$this->assertEquals(1,$categories[3]->recentPostCount2);
+	}
+
 	public function testLazyLoadingWithConditions()
 	{
 		$user=User::model()->findByPk(2);
@@ -879,7 +939,17 @@ class CActiveRecordTest extends CTestCase
 			$this->assertEquals(2,$models[1]->id);
 		}
 
-		//TODO: test 'scopes' option in scopes()
+		//behavior scope
+		$models=Post::model()->findAll(array('scopes'=>'behaviorPost23'));
+		$this->assertEquals(2,count($models));
+		$this->assertEquals(2,$models[0]->id);
+		$this->assertEquals(3,$models[1]->id);
+
+		//behavior parametrized scope
+		$models=Post::model()->findAll(array('scopes'=>array('behaviorRecent'=>3)));
+		$this->assertEquals(3,count($models));
+		$this->assertEquals(5,$models[0]->id);
+		$this->assertEquals(4,$models[1]->id);
 	}
 
 	public function testScopeWithRelations()
@@ -887,8 +957,12 @@ class CActiveRecordTest extends CTestCase
 		$user1=User::model()->with('posts:post23')->findByPk(2);
 		$user2=User::model()->with(array('posts'=>array('scopes'=>'post23')))->findByPk(2);
 		$user3=User::model()->findByPk(2,array('with'=>array('posts'=>array('scopes'=>'post23'))));
+		//ensure alais overloading work correctly
+		$user4=User::model()->with(array('posts:post23A'=>array('alias'=>'alias')))->findByPk(2);
+		$user5=User::model()->with(array('posts'=>array('scopes'=>'post23A','alias'=>'alias')))->findByPk(2);
+		$user6=User::model()->findByPk(2,array('with'=>array('posts'=>array('scopes'=>'post23A','alias'=>'alias'))));
 
-		foreach(array($user1,$user2,$user3) as $user)
+		foreach(array($user1,$user2,$user3,$user4,$user5,$user6) as $user)
 		{
 			$this->assertEquals(2,count($user->posts));
 			$this->assertEquals(2,$user->posts[0]->id);
@@ -928,7 +1002,49 @@ class CActiveRecordTest extends CTestCase
 		$this->assertEquals(2,$posts[0]->id);
 		$this->assertEquals(3,$posts[1]->id);
 
-		//TODO: test 'scopes' option in scopes()
+		//related model behavior scope
+		$user1=User::model()->with('posts:behaviorPost23')->findByPk(2);
+		$user2=User::model()->with(array('posts'=>array('scopes'=>'behaviorPost23')))->findByPk(2);
+		$user3=User::model()->findByPk(2,array('with'=>array('posts'=>array('scopes'=>'behaviorPost23'))));
+
+		foreach(array($user1,$user2,$user3) as $user)
+		{
+			$this->assertEquals(2,count($user->posts));
+			$this->assertEquals(2,$user->posts[0]->id);
+			$this->assertEquals(3,$user->posts[1]->id);
+		}
+
+		//related model with behavior parametrized scope
+		$user1=User::model()->with(array('posts'=>array('scopes'=>array('behaviorP'=>4))))->findByPk(2);
+		$user2=User::model()->with(array('posts'=>array('scopes'=>array('behaviorP'=>array(4)))))->findByPk(2);
+		$user3=User::model()->with(array('posts'=>array('scopes'=>array(array('behaviorP'=>4)))))->findByPk(2);
+		$user4=User::model()->with(array('posts'=>array('scopes'=>array(array('behaviorP'=>array(4))))))->findByPk(2);
+		$user5=User::model()->findByPk(2,array('with'=>array('posts'=>array('scopes'=>array('behaviorP'=>4)))));
+		$user6=User::model()->findByPk(2,array('with'=>array('posts'=>array('scopes'=>array('behaviorP'=>array(4))))));
+		$user7=User::model()->findByPk(2,array('with'=>array('posts'=>array('scopes'=>array(array('behaviorP'=>4))))));
+		$user8=User::model()->findByPk(2,array('with'=>array('posts'=>array('scopes'=>array(array('behaviorP'=>array(4)))))));
+
+		foreach(array($user1,$user2,$user3,$user4,$user5,$user6,$user7,$user8) as $user)
+		{
+			$this->assertEquals(1,count($user->posts));
+			$this->assertEquals(4,$user->posts[0]->id);
+		}
+
+		//related model with 'scopes' as relation option
+		$user=User::model()->with('postsOrderDescFormat1')->findByPk(2);
+		$this->assertEquals(3,count($user->postsOrderDescFormat1));
+		$this->assertEquals(array(4,3,2),array(
+			$user->postsOrderDescFormat1[0]->id,
+			$user->postsOrderDescFormat1[1]->id,
+			$user->postsOrderDescFormat1[2]->id,
+		));
+		$user=User::model()->with('postsOrderDescFormat2')->findByPk(2);
+		$this->assertEquals(3,count($user->postsOrderDescFormat2));
+		$this->assertEquals(array(4,3,2),array(
+			$user->postsOrderDescFormat2[0]->id,
+			$user->postsOrderDescFormat2[1]->id,
+			$user->postsOrderDescFormat2[2]->id,
+		));
 	}
 
 	public function testResetScope()
@@ -1258,5 +1374,207 @@ class CActiveRecordTest extends CTestCase
 		$this->assertEquals(array(
 			array('user1','user3'),
 		),$result);
+	}
+
+	/**
+	 * @see issue2274
+	 */
+	function testMergingWith()
+	{
+		User::model()->nonEmptyPosts()->findAll(array(
+			'with'=>array(
+        		'posts'=>array(
+            		'joinType'=>'INNER JOIN',
+        		),
+    		)
+		));
+	}
+
+	/**
+	 * @see github issue 206
+	 * Unable to pass CDbCriteria to relation while array works fine.
+	 */
+	public function testIssue206()
+	{
+		$user = User::model()->findByPk(2);
+		$result1 = $user->posts(array('condition' => 'id IN (2,3)'));
+
+		$criteria = new CDbCriteria();
+		$criteria->addInCondition('id', array(2,3));
+		$user = User::model()->findByPk(2);
+		$result2 = $user->posts($criteria);
+
+		$this->assertEquals($result1, $result2);
+	}
+
+	/**
+	 * @see https://github.com/yiisoft/yii/issues/268
+	 */
+	public function testCountIsSubStringOfFieldName()
+	{
+		$result = User::model()->with('profiles')->count(array('select'=>'country AS country','condition'=>'t.id=2'));
+		$this->assertEquals(1,$result);
+	}
+
+	/**
+	 * verify https://github.com/yiisoft/yii/issues/2756
+	 */
+	public function testLazyFindCondition()
+	{
+		$user = User::model()->findByPk(2);
+		$this->assertEquals(3, count($user->posts()));
+		$this->assertEquals(2, count($user->posts(array('condition' => 'id IN (2,3)'))));
+		$this->assertEquals(2, count($user->postsCondition()));
+	}
+
+	/**
+	 * https://github.com/yiisoft/yii/issues/1070
+	 */
+	public function testIssue1070()
+	{
+		$dataProvider=new CActiveDataProvider('UserWithDefaultScope');
+
+		foreach($dataProvider->getData() as $item)
+		{
+			try
+			{
+				$item->links[0]->from_user;
+				$result=true;
+			}
+			catch ( CDbException $e )
+			{
+				$result=false;
+			}
+
+			$this->assertTrue($result);
+		}
+	}
+
+	/**
+	 * https://github.com/yiisoft/yii/issues/507
+	 */
+	public function testIssue507()
+	{
+		$this->assertEquals(2, count(UserWithDefaultScope::model()->findAll()));
+
+	}
+
+	/**
+	 * @see https://github.com/yiisoft/yii/issues/135
+	 */
+	public function testCountWithHaving()
+	{
+		$criteriaWithHaving = new CDbCriteria();
+		$criteriaWithHaving->group = 'id';
+		$criteriaWithHaving->having = 'id = 1';
+		$count = Post::model()->count($criteriaWithHaving);
+
+		$this->assertEquals(1, $count, 'Having condition has not been applied on count!');
+	}
+
+	/**
+	 * @see https://github.com/yiisoft/yii/issues/135
+	 * @see https://github.com/yiisoft/yii/issues/2201
+	 */
+	public function testCountWithHavingRelational()
+	{
+		$criteriaWithHaving = new CDbCriteria();
+		$criteriaWithHaving->select = 't.id AS test_field';
+		$criteriaWithHaving->with = array('author');
+		$criteriaWithHaving->group = 't.id';
+		$criteriaWithHaving->having = 'test_field = :test_field';
+		$criteriaWithHaving->params['test_field'] = 1;
+		$count = Post::model()->count($criteriaWithHaving);
+
+		$this->assertEquals(1, $count, 'Having condition has not been applied on count with relation!');
+	}
+
+	/**
+	 * @depends testFind
+	 *
+	 * @see https://github.com/yiisoft/yii/issues/2216
+	 */
+	public function testFindBySinglePkByArrayWithMixedKeys()
+	{
+		$posts=Post::model()->findAllByPk(array('some'=>3));
+		$this->assertEquals(1,count($posts));
+		$this->assertEquals(3,$posts[0]->id);
+
+		$posts=Post::model()->findAllByPk(array('some'=>3, 'another'=>2));
+		$this->assertEquals(2,count($posts));
+		$this->assertEquals(2,$posts[0]->id);
+		$this->assertEquals(3,$posts[1]->id);
+	}
+
+	/**
+	 * @depends testFind
+	 *
+	 * @see https://github.com/yiisoft/yii/issues/101
+	 */
+	public function testHasManyThroughHasManyWithCustomSelect()
+	{
+		$model=User::model()->with('studentsCustomSelect')->findByPk(1);
+		$this->assertTrue(is_object($model),'Unable to get master records!');
+		$this->assertTrue(count($model->students)>0,'Empty slave records!');
+	}
+
+	/**
+	 * @depends testFind
+	 *
+	 * @see https://github.com/yiisoft/yii/issues/139
+	 */
+	public function testLazyLoadThroughRelationWithCondition()
+	{
+		$masterModel=Group::model()->findByPk(1);
+		$this->assertTrue(count($masterModel->users)>0,'Test environment is missing!');
+		$this->assertEquals(0,count($masterModel->usersWhichEmptyByCondition),'Unable to apply condition from through relation!');
+	}
+
+	/**
+	 * @depends testFind
+	 *
+	 * @see https://github.com/yiisoft/yii/issues/662
+	 */
+	public function testThroughBelongsToLazy()
+	{
+		$comments=Comment::model()->findAll();
+		foreach($comments as $comment)
+		{
+			$this->assertFalse(empty($comment->postAuthor));
+			// equal relation definition with BELONGS_TO: https://github.com/yiisoft/yii/pull/2530
+			$this->assertFalse(empty($comment->postAuthorBelongsTo));
+			$this->assertTrue($comment->postAuthor->equals($comment->postAuthorBelongsTo));
+		}
+	}
+
+	public function testThroughBelongsEager()
+	{
+		$comments=Comment::model()->with('postAuthorBelongsTo')->findAll();
+		foreach($comments as $comment)
+		{
+			$this->assertFalse(empty($comment->postAuthor));
+			// equal relation definition with BELONGS_TO: https://github.com/yiisoft/yii/pull/2530
+			$this->assertFalse(empty($comment->postAuthorBelongsTo));
+			$this->assertTrue($comment->postAuthor->equals($comment->postAuthorBelongsTo));
+		}
+	}
+
+	public function testNamespacedTableName()
+	{
+		if(!version_compare(PHP_VERSION,"5.3.0",">="))
+			$this->markTestSkipped('PHP 5.3.0 or higher required for namespaces.');
+		require_once(dirname(__FILE__).'/../data/models-namespaced.php');
+		$this->assertEquals("posts",Post::model()->tableName());
+		$this->assertEquals("Example",CActiveRecord::model("yiiArExample\\testspace\\Example")->tableName());
+	}
+
+	/**
+	 * https://github.com/yiisoft/yii/issues/2884
+	 */
+	public function testDefaultScopeAlias()
+	{
+		$this->assertEquals('user3', UserWithDefaultScopeAlias::model()->resetScope()->findByPk(3)->username);
+		$this->assertNull(UserWithDefaultScopeAlias::model()->findByPk(3));
+		$this->assertNotNull(UserWithDefaultScopeAlias::model()->findByPk(1));
 	}
 }

@@ -4,23 +4,22 @@
  *
  * @author Ricardo Grana <rickgrana@yahoo.com.br>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2011 Yii Software LLC
+ * @copyright 2008-2013 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
 /**
- * COciColumnSchema class describes the column meta data of a Oracle table.
+ * COciColumnSchema class describes the column meta data of an Oracle table.
  *
  * @author Ricardo Grana <rickgrana@yahoo.com.br>
- * @version $Id$
  * @package system.db.schema.oci
- * @since 1.0.5
  */
 class COciColumnSchema extends CDbColumnSchema
 {
 	/**
 	 * Extracts the PHP type from DB type.
 	 * @param string $dbType DB type
+	 * @return string
 	 */
 	protected function extractOraType($dbType){
 		if(strpos($dbType,'FLOAT')!==false) return 'double';
@@ -51,7 +50,7 @@ class COciColumnSchema extends CDbColumnSchema
 		$this->type=$this->extractOraType($dbType);
 	}
 
-	/*
+	/**
 	 * Extracts the default value for the column.
 	 * The value is typecasted to correct PHP type.
 	 * @param mixed $defaultValue the default value obtained from metadata

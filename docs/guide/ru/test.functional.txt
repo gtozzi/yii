@@ -94,11 +94,9 @@ class PostTest extends WebTestCase
 `http://localhost/yii/demos/blog/index-test.php/post/1`), который мы установили
 в базовом классе. Затем мы проверяем, что можем найти заголовок записи
 `sample1` на данной странице. И мы также проверяем, что страница содержит текст
-`Оставить комментарий`.
+`Leave a comment`.
 
 
 > Tip|Подсказка: Перед запуском функциональных тестов запустите сервер Selenium-RC.
 > Сделать это можно командой `java -jar selenium-server.jar`, выполненной в
 > директории, в которую установлен Selenium.
-
-<div class="revision">$Id: test.functional.txt 1662 2010-01-04 19:15:10Z qiang.xue $</div>

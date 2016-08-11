@@ -1,7 +1,7 @@
 Administrowanie wiadomościami
 ==============
 
-Administrowanie wiadomościami przede wszystkim odnosi się do wyświetlenia w liście wiadomości w widoku administratora co pozwala nam widzieć wiadomości o wszystkich statusach, aktualizować je oraz usuwać je. Są one wykonywane odpowiednio przez operację `admin` oraz operację usuwania `delete`. Kod wygenerowany przez narzędzie `yiic` nie wymaga zbytniej modyfikacji. Poniżej wyjaśniamy przede wszystkim jak te dwie operacje zostały zaimplementowane.
+Administrowanie wiadomościami przede wszystkim odnosi się do wyświetlenia w liście wiadomości w widoku administratora co pozwala nam widzieć wiadomości o wszystkich statusach, aktualizować je oraz usuwać. Są one wykonywane odpowiednio przez operację `admin` oraz operację usuwania `delete`. Kod wygenerowany przez narzędzie `yiic` nie wymaga zbytniej modyfikacji. Poniżej wyjaśniamy przede wszystkim jak te dwie operacje zostały zaimplementowane.
 
 
 Wyświetlenie listy wiadomości w widoku tabelarycznym
@@ -22,7 +22,7 @@ public function actionAdmin()
 }
 ~~~
 
-Powyższy kod jest został wygenerowany przez narzędzie `yiic` i nie został zmodyfikowany. Najpierw tworzy on model wiadomości `Post` dla [scenariusza](/doc/guide/form.model) wyszukiwania `search`. Będziemy używać tego modelu do gromadzenia warunków wyszukiwania, które specyfikuje użytkownik. Jeżeli istnieją dane dostarczone przez użytkownika, przypisujemy je do modelu. Na koniec generujemy widok `admin` wraz z modelem.
+Powyższy kod został wygenerowany przez narzędzie `yiic` i nie został zmodyfikowany. Najpierw tworzy on model wiadomości `Post` dla [scenariusza](/doc/guide/form.model) wyszukiwania `search`. Będziemy używać tego modelu do gromadzenia warunków wyszukiwania, które specyfikuje użytkownik. Jeżeli istnieją dane dostarczone przez użytkownika, przypisujemy je do modelu. Na koniec generujemy widok `admin` wraz z modelem.
 
 Poniżej znajduje się kod widoku `admin`:
 
@@ -80,7 +80,7 @@ public function actionDelete()
 		// we only allow deletion via POST request
 		$this->loadModel()->delete();
 
-		if(!isset($_POST['ajax']))
+		if(!isset($_GET['ajax']))
 			$this->redirect(array('index'));
 	}
 	else
@@ -88,8 +88,7 @@ public function actionDelete()
 }
 ~~~
 
-Powyższy kod został wygenerowany przez narzędzie `yiic` i nie został zmieniony. Będziemy chcieli wyjaśnić nieco więcej na temat sprawdzania `$_POST['ajax']`. Widżet [CGridView] posiada bardzo fajną funkcję, która domyślnie wykonuje operacje sortowania, stronicowania, usuwania przy użyciu trybu AJAX. Oznacza to, że cała strona nie jest przeładowywana jeśli jakakolwiek z ww. operacji jest wykonywana. Jednakże, istnieje również możliwość uruchamiania widżetu bez trybu AJAX (poprzez ustawienie właściwości `ajaxUpdate` na false albo poprzez wyłączenie obsługi JavaScript po stronie klienta). Dla akcji `delete` zachodzi konieczność rozróżnienia tych dwóch scenariuszy: jeśli żądanie usuwanie pochodzi z AJAX-a nie powinniśmy przekierowywać przeglądarki użytkownika, w przeciwnym przypadku powinniśmy.
-Powyższy kod został wygenerowany przez narzędzie `yiic` i nie został zmieniony. Będziemy chcieli wyjaśnić nieco więcej na temat sprawdzania `$_POST['ajax']`. Widżet [CGridView] posiada bardzo fajną funkcję, która domyślnie wykonuje operacje sortowania, stronicowania, usuwania przy użyciu trybu AJAX. Oznacza to, że cała strona nie jest przeładowywana jeśli jakakolwiek z ww. operacji jest wykonywana. Jednakże, istnieje również możliwość uruchamiania widżetu bez trybu AJAX (poprzez ustawienie właściwości `ajaxUpdate` na false albo poprzez wyłączenie obsługi JavaScript po stronie klienta). Dla akcji `delete` zachodzi konieczność rozróżnienia tych dwóch scenariuszy: jeśli żądanie usuwanie pochodzi z AJAX-a nie powinniśmy przekierowywać przeglądarki użytkownika, w przeciwnym przypadku powinniśmy.
+Powyższy kod został wygenerowany przez narzędzie `yiic` i nie został zmieniony. Będziemy chcieli wyjaśnić nieco więcej na temat sprawdzania `$_POST['ajax']`. Widżet [CGridView] posiada bardzo fajną funkcję, która domyślnie wykonuje operacje sortowania, stronicowania, usuwania przy użyciu trybu AJAX. Oznacza to, że cała strona nie jest przeładowywana jeśli jakakolwiek z ww. operacji jest wykonywana. Jednakże, istnieje również możliwość uruchamiania widżetu bez trybu AJAX (poprzez ustawienie właściwości `ajaxUpdate` na false albo poprzez wyłączenie obsługi JavaScript po stronie klienta). Dla akcji `delete` zachodzi konieczność rozróżnienia tych dwóch scenariuszy: jeśli żądanie usuwania pochodzi z AJAX-a nie powinniśmy przekierowywać przeglądarki użytkownika, w przeciwnym przypadku powinniśmy.
 
 Usuwanie wiadomości powinno również spowodować usuwanie jej wszystkich komentarzy. Dodatkowo powinniśmy również zaktualizować tabelę `tbl_tag` uwzględniając tagi z usuniętej wiadomości. Oba powyższe zadania powinny zostać osiągnięte poprzez napisanie metody `afterDelete` w klasie modelu wiadomości `Post` w następujący sposób:
 
@@ -107,4 +106,4 @@ Powyższy kod jest bardzo prosty. Najpierw usuwane są wszystkie komentarze, kt�
 
 > Tip|Wskazówka: Musimy jawnie usunąć wszystkie komentarze dla usuniętej wiadomości, ponieważ SQLite nie wspiera ograniczeń klucza obcego. W silnikach bazy danych, które wpierają ograniczanie (takich jak MySQL, PostgreSQL), ograniczenie klucza obcego może zostać tak zdefiniowane, że silnik bazy danych automatycznie usunie powiązane komentarze w momencie usuwania wiadomości. W takim przypadku nie będziemy potrzebowali w naszym kodzie jawnego usuwania.
 
-<div class="revision">$Id: post.admin.txt 2425 2010-09-05 01:30:14Z qiang.xue $</div>
+<div class="revision">$Id: post.admin.txt 3557 2012-02-09 15:26:05Z alexander.makarow $</div>

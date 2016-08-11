@@ -137,7 +137,7 @@ would be translated as
 
 ~~~
 [php]
-<?php if($this->cache('profile', array('duration'=>3600))): ?>
+<?php if($this->beginCache('profile', array('duration'=>3600))): ?>
 	// user profile information here
 <?php $this->endCache(); endif; ?>
 ~~~
@@ -189,4 +189,3 @@ will be rendered using the installed view renderer, while all other view files e
 with `.php` will be treated as normal PHP view script.
 
 
-<div class="revision">$Id$</div>

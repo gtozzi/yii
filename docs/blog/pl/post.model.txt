@@ -1,12 +1,12 @@
 Dostosowywanie modelu wiadomości
 ======================
 
-Klasa wiadomości `Post`, wygenerowana przez narzędzie `Gii` musi zostać zmodyfikowana przede głównie w dwóch miejscach:
+Klasa wiadomości `Post`, wygenerowana przez narzędzie `Gii` musi zostać zmodyfikowana głównie w dwóch miejscach:
 
  - w metodzie `rules()`: określającej reguły sprawdzania poprawności dla atrybutów modelu;
  - w metodzie `relations()`: definiującej obiekty pokrewne;
 
-> Info|Info: [Model](http://www.yiiframework.com/doc/guide/basics.model) zawiera listę atrybutów, każdy z nich jest powiązany z odpowiadającą mu kolumną w bazie danych. Atrybuty mogą być zadeklarowane bezpośrednio jako jako zmienne klasy lub też pośrednio bez żadnej deklaracji. 
+> Info|Info: [Model](http://www.yiiframework.com/doc/guide/basics.model) zawiera listę atrybutów, każdy z nich jest powiązany z odpowiadającą mu kolumną w bazie danych. Atrybuty mogą być zadeklarowane bezpośrednio jako zmienne klasy lub też pośrednio bez żadnej deklaracji. 
 
 
 Dostosowywanie metody `rules()`
@@ -35,7 +35,7 @@ public function rules()
 
 W powyższym kodzie określiliśmy, że atrybuty tytułu `title`, zawartości `content` i statusu `status` są atrybutami wymaganymi (muszą być wypełnione); długość tytułu `title` nie powinna przekraczać 128 (znaków); wartość atrybutu statusu `status` powinna być 1 (wersja robocza, ang. draft), 2 (opublikowana, ang. published) lub 3 (zarchiwizowana, ang. archived); a atrybut otagowania `tags` powinien zawierać wyłącznie znaki słów oraz przecinki. Dodatkowo używamy metody `normalizeTags` do unormowania wprowadzonych przez użytkownika tagów, w taki sposób, że tagi będą unikalne i poprawnie rozdzielone za pomocą przecinków. Ostatnia reguła jest używana przez funkcjonalność wyszukiwania, co zostanie opisane później.
 
-Walidatory takie jak `required`, `length`, `in` oraz `match` są wbudowanymi walidatorami dostarczanymi przez Yii. Natomiast walidator `normalizeTags` jest walidatorem opartym na metodzie, która musimy zdefiniować w klasie wiadomości `Post`. Aby uzyskać więcej informacji o tym jak określić reguły sprawdzania poprawności, zajrzyj do [poradnika](http://www.yiiframework.com/doc/guide/form.model#declaring-validation-rules).
+Walidatory takie jak `required`, `length`, `in` oraz `match` są wbudowanymi walidatorami dostarczanymi przez Yii. Natomiast walidator `normalizeTags` jest walidatorem opartym na metodzie, którą musimy zdefiniować w klasie wiadomości `Post`. Aby uzyskać więcej informacji o tym jak określić reguły sprawdzania poprawności, zajrzyj do [poradnika](http://www.yiiframework.com/doc/guide/form.model#declaring-validation-rules).
 
 ~~~
 [php]
@@ -45,7 +45,20 @@ public function normalizeTags($attribute,$params)
 }
 ~~~
 
-gdzie metody `array2string` oraz `string2array` są nowymi metodami zdefiniowanymi w klasie modelu `Tag`. Aby zobaczyć więcej szczegółów zajrzyj do pliku `/wwwroot/yii/demos/blog/protected/models/Tag.php`.
+gdzie metody `array2string` oraz `string2array` są nowymi metodami, które musimy zdefiniować w klasie modelu `Tag`:
+
+~~~
+[php]
+public static function string2array($tags)
+{
+	return preg_split('/\s*,\s*/',trim($tags),-1,PREG_SPLIT_NO_EMPTY);
+}
+
+public static function array2string($tags)
+{
+	return implode(', ',$tags);
+}
+~~~
 
 Reguły zadeklarowane w metodzie `rules()` są wywoływane jedna po drugiej podczas wywoływania metody [validate()|CModel::validate] lub [save()|CActiveRecord::save] dla instancji modelu.
 
@@ -57,7 +70,7 @@ Po wprowadzeniu tych zmian, możemy odwiedzić ponownie stronę tworzenia wiadom
 Dostosowywanie metody `relations()`
 --------------------------------
 
-Na samym końcu dostosowujemy metodę `relations()` w celu zdefiniowania obiektów powiązanych przez do wiadomości. Poprzez zadeklarowanie tych powiązanych obiektów w metodzie `relations()`, możemy wykorzystać potęgę funkcji [relacyjnego aktywnego rekordu (RAR)](http://www.yiiframework.com/doc/guide/database.arr) w celu uzyskanie dostępu do informacji z powiązanych z wiadomością obiektów, takich jak jej autor oraz komentarze, bez potrzeby pisanie złożonych wyrażeń SQL z JOIN.
+Na samym końcu dostosowujemy metodę `relations()` w celu zdefiniowania obiektów powiązanych do wiadomości. Poprzez zadeklarowanie tych powiązanych obiektów w metodzie `relations()`, możemy wykorzystać potęgę funkcji [relacyjnego aktywnego rekordu (RAR)](http://www.yiiframework.com/doc/guide/database.arr) w celu uzyskania dostępu do informacji z powiązanych z wiadomością obiektów, takich jak jej autor oraz komentarze bez potrzeby pisania złożonych wyrażeń SQL z JOIN.
 
 Dostosowujemy metodę `relations()` w następujący sposób:
 
@@ -88,7 +101,7 @@ class Comment extends CActiveRecord
 }
 ~~~
 
-Relacje zadeklarowanie w metodzi `relations()` ozczanają, że:
+Relacje zadeklarowane w metodzie `relations()` oznaczają, że:
 
  * Wiadomość należy do autora, którego reprezentuje klasa `User` a relacja pomiędzy nimi zostaje określona w oparciu o wartość atrybutu `author_id` wiadomości;
  * Wiadomość posiada wiele komentarzy, które reprezentuje klasa `Comment` a relacja pomiędzy nimi zostaje określona w oparciu o wartość atrybutu `post_id` tych komentarzy. Komentarze te powinny zostać posortowane odpowiednio do czasu ich utworzenia.
@@ -113,7 +126,7 @@ Aby uzyskać więcej informacji o tym jak deklarować i używać relacji, sprawd
 Dodanie właściwości `url`
 ---------------------
 
-Wiadomość jest pewną zawartością, która jest powiązana z unikalnym adresem URL, służacym do jej wyświetlenia. Zamiast wywoływać metodę [CWebApplication::createUrl] wszędzie, w naszym kodzie, gdzie chcemy dostać ten adres URL, możemy dodać właściwość `url` do modelu wiadomości `Post`, tak że ten sama część kodu tworzącego adres URL może zostać użyta ponownie. W dalszej części, gdy już opiszemy jak upiększać URLe, zobaczymy że wprowadzenie tej właściwości niesie za sobą dużo wygody.
+Wiadomość jest pewną zawartością, która jest powiązana z unikalnym adresem URL, służącym do jej wyświetlenia. Zamiast wywoływać metodę [CWebApplication::createUrl] wszędzie, w naszym kodzie, gdzie chcemy dostać ten adres URL, możemy dodać właściwość `url` do modelu wiadomości `Post`, tak że ta sama część kodu tworzącego adres URL może zostać użyta ponownie. W dalszej części, gdy już opiszemy jak upiększać URLe, zobaczymy że wprowadzenie tej właściwości niesie za sobą dużo wygody.
 
 Aby dodać właściwość `url` zmodyfikujemy klasę wiadomości `Post` w następujący sposób poprzez dodanie metody gettera:
 
@@ -177,7 +190,7 @@ class Lookup extends CActiveRecord
 }
 ~~~
 
-Nasz kod głównie dostarcza dwóch metod statycznych: `Lookup::items()` oraz `Lookup::item()`. Pierwsza zwraca listę łańcuchów należących do określonego typu danych, gdy druga zwraca poszczególny łańcuch dla danego typu danych i wartości 
+Nasz kod głównie dostarcza dwóch metod statycznych: `Lookup::items()` oraz `Lookup::item()`. Pierwsza zwraca listę łańcuchów należących do określonego typu danych, gdy druga zwraca poszczególny łańcuch dla danego typu danych i wartości.
 
 Nasza baza danych blogu jest wstępnie wypełniona przez dwa typy: status wiadomości `PostStatus` oraz status komentarza `CommentStatus`. Pierwszy przedstawia możliwe statusy wiadomości, drugi zaś komentarzy.
 
@@ -197,4 +210,4 @@ class Post extends CActiveRecord
 Dlatego też możemy wywołać metodę `Lookup::items('PostStatus')` aby uzyskać listę możliwych statusów wiadomości (łańcuchy tekstowe indeksowane przez odpowiadające im wartości całkowite) jak również wywoływać metodę `Lookup::item('PostStatus', Post::STATUS_PUBLISHED)` aby otrzymać łańcuch reprezentujący status "opublikowany".
 
 
-<div class="revision">$Id: post.model.txt 2922 2011-01-29 19:51:56Z alexander.makarow $</div>
+<div class="revision">$Id: post.model.txt 3366 2011-08-03 21:24:26Z alexander.makarow $</div>

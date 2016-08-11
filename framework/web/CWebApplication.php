@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2011 Yii Software LLC
+ * @copyright 2008-2013 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -36,8 +36,22 @@
  * For example, the controller 'article' is defined by the class 'ArticleController'
  * which is in the file 'protected/controllers/ArticleController.php'.
  *
+ * @property IAuthManager $authManager The authorization manager component.
+ * @property CAssetManager $assetManager The asset manager component.
+ * @property CHttpSession $session The session component.
+ * @property CWebUser $user The user session information.
+ * @property IViewRenderer $viewRenderer The view renderer.
+ * @property CClientScript $clientScript The client script manager.
+ * @property IWidgetFactory $widgetFactory The widget factory.
+ * @property CThemeManager $themeManager The theme manager.
+ * @property CTheme $theme The theme used currently. Null if no theme is being used.
+ * @property CController $controller The currently active controller.
+ * @property string $controllerPath The directory that contains the controller classes. Defaults to 'protected/controllers'.
+ * @property string $viewPath The root directory of view files. Defaults to 'protected/views'.
+ * @property string $systemViewPath The root directory of system view files. Defaults to 'protected/views/system'.
+ * @property string $layoutPath The root directory of layout files. Defaults to 'protected/views/layouts'.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id$
  * @package system.web
  * @since 1.0
  */
@@ -68,7 +82,7 @@ class CWebApplication extends CApplication
 	 *      'class'=>'path.to.PostController',
 	 *      'pageTitle'=>'something new',
 	 *   ),
-	 *   'user'=>'path.to.UserController',,
+	 *   'user'=>'path.to.UserController',
 	 * )
 	 * </pre>
 	 *
@@ -94,12 +108,18 @@ class CWebApplication extends CApplication
 	 */
 	public $catchAllRequest;
 
+	/**
+	 * @var string Namespace that should be used when loading controllers.
+	 * Default is to use global namespace.
+	 * @since 1.1.11
+	 */
+	public $controllerNamespace;
+
 	private $_controllerPath;
 	private $_viewPath;
 	private $_systemViewPath;
 	private $_layoutPath;
 	private $_controller;
-	private $_homeUrl;
 	private $_theme;
 
 
@@ -247,72 +267,6 @@ class CWebApplication extends CApplication
 	}
 
 	/**
-	 * Creates a relative URL based on the given controller and action information.
-	 * @param string $route the URL route. This should be in the format of 'ControllerID/ActionID'.
-	 * @param array $params additional GET parameters (name=>value). Both the name and value will be URL-encoded.
-	 * @param string $ampersand the token separating name-value pairs in the URL.
-	 * @return string the constructed URL
-	 */
-	public function createUrl($route,$params=array(),$ampersand='&')
-	{
-		return $this->getUrlManager()->createUrl($route,$params,$ampersand);
-	}
-
-	/**
-	 * Creates an absolute URL based on the given controller and action information.
-	 * @param string $route the URL route. This should be in the format of 'ControllerID/ActionID'.
-	 * @param array $params additional GET parameters (name=>value). Both the name and value will be URL-encoded.
-	 * @param string $schema schema to use (e.g. http, https). If empty, the schema used for the current request will be used.
-	 * @param string $ampersand the token separating name-value pairs in the URL.
-	 * @return string the constructed URL
-	 */
-	public function createAbsoluteUrl($route,$params=array(),$schema='',$ampersand='&')
-	{
-		$url=$this->createUrl($route,$params,$ampersand);
-		if(strpos($url,'http')===0)
-			return $url;
-		else
-			return $this->getRequest()->getHostInfo($schema).$url;
-	}
-
-	/**
-	 * Returns the relative URL for the application.
-	 * This is a shortcut method to {@link CHttpRequest::getBaseUrl()}.
-	 * @param boolean $absolute whether to return an absolute URL. Defaults to false, meaning returning a relative one.
-	 * This parameter has been available since 1.0.2.
-	 * @return string the relative URL for the application
-	 * @see CHttpRequest::getBaseUrl()
-	 */
-	public function getBaseUrl($absolute=false)
-	{
-		return $this->getRequest()->getBaseUrl($absolute);
-	}
-
-	/**
-	 * @return string the homepage URL
-	 */
-	public function getHomeUrl()
-	{
-		if($this->_homeUrl===null)
-		{
-			if($this->getUrlManager()->showScriptName)
-				return $this->getRequest()->getScriptUrl();
-			else
-				return $this->getRequest()->getBaseUrl().'/';
-		}
-		else
-			return $this->_homeUrl;
-	}
-
-	/**
-	 * @param string $value the homepage URL
-	 */
-	public function setHomeUrl($value)
-	{
-		$this->_homeUrl=$value;
-	}
-
-	/**
 	 * Creates the controller and performs the specified action.
 	 * @param string $route the route of the current request. See {@link createController} for more details.
 	 * @throws CHttpException if the controller could not be created.
@@ -357,7 +311,7 @@ class CWebApplication extends CApplication
 	{
 		if($owner===null)
 			$owner=$this;
-		if(($route=trim($route,'/'))==='')
+		if((array)$route===$route || ($route=trim($route,'/'))==='')
 			$route=$owner->defaultController;
 		$caseSensitive=$this->getUrlManager()->caseSensitive;
 
@@ -390,6 +344,10 @@ class CWebApplication extends CApplication
 				$controllerID.='/';
 			$className=ucfirst($id).'Controller';
 			$classFile=$basePath.DIRECTORY_SEPARATOR.$className.'.php';
+
+			if($owner->controllerNamespace!==null)
+				$className=$owner->controllerNamespace.'\\'.str_replace('/','\\',$controllerID).$className;
+
 			if(is_file($classFile))
 			{
 				if(!class_exists($className,false))
@@ -413,7 +371,6 @@ class CWebApplication extends CApplication
 	 * Parses a path info into an action ID and GET variables.
 	 * @param string $pathInfo path info
 	 * @return string action ID
-	 * @since 1.0.3
 	 */
 	protected function parseActionParams($pathInfo)
 	{
@@ -438,7 +395,6 @@ class CWebApplication extends CApplication
 
 	/**
 	 * @param CController $value the currently active controller
-	 * @since 1.0.6
 	 */
 	public function setController($value)
 	{
@@ -541,7 +497,6 @@ class CWebApplication extends CApplication
 	 * @param CController $controller the controller
 	 * @param CAction $action the action
 	 * @return boolean whether the action should be executed.
-	 * @since 1.0.4
 	 */
 	public function beforeControllerAction($controller,$action)
 	{
@@ -555,18 +510,15 @@ class CWebApplication extends CApplication
 	 * after all controller actions.
 	 * @param CController $controller the controller
 	 * @param CAction $action the action
-	 * @since 1.0.4
 	 */
 	public function afterControllerAction($controller,$action)
 	{
 	}
 
 	/**
-	 * Searches for a module by its ID.
-	 * This method is used internally. Do not call this method.
+	 * Do not call this method. This method is used internally to search for a module by its ID.
 	 * @param string $id module ID
 	 * @return CWebModule the module that has the specified ID. Null if no module is found.
-	 * @since 1.0.3
 	 */
 	public function findModule($id)
 	{

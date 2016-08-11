@@ -1,52 +1,54 @@
-1.0から1.1へのアップグレード
+バージョン 1.0 から 1.1 へのアップグレード
 =================================
 
 モデルシナリオに関する変更
 ------------------------------------
 
-- CModel::safeAttributes()が削除された。セーフアトリビュートはCModel::rules()ルール中の、個別のシナリオで設定されたものという定義に変更された。
+- CModel::safeAttributes()が削除されました。セーフなアトリビュート(安全な属性)とは、個別のシナリオのために CModel::rules() で定義されたルールによって検証されたもの、という定義に変更されました。
 
-- CModel::validate()、CModel::beforeValidate()、CModel::afterValidate()が変更された。
-CModel::setAttributes(), CModel::getSafeAttributeNames()が変更された。
-'scenario'パラメータが削除された。シナリオを得たり設定したりするにはCModel::scenarioを使用してください。
+- CModel::validate(), CModel::beforeValidate(), CModel::afterValidate() が変更されました。
+CModel::setAttributes(), CModel::getSafeAttributeNames() が変更され、'scenario' パラメータが削除されました。シナリオを得たり設定したりするには CModel::scenario を使用してください。
 
-- CModel::getValidators() and CModel::getValidatorsForAttribute()が変更された。
-They now only return validators applicable to the scenario as specified
-by the model's scenario property.
+- CModel::getValidators() が変更され、CModel::getValidatorsForAttribute() が削除されました。
+CModel::getValidators() はモデルの scenario プロパティによって指定されたシナリオに対応するバリデータだけを返します。
 
-- Changed CModel::isAttributeRequired() and CModel::getValidatorsForAttribute().
-The scenario parameter is removed. The model's scenario property will be
-used, instead.
+- CModel::isAttributeRequired() と CModel::getValidatorsForAttribute() が変更されました。
+'scenario' パラメータが削除されました。そのかわりにモデルの scenario プロパティを使用してください。
 
-- Removed CModel::getValidatorsForAttribute(). Please use CModel::getValidators() instead.
-
-- Removed CHtml::scenario
+- CHtml::scenario が削除されました。CHtml はモデルのシナリオプロパティを使用します。
 
 
-Changes Related with Eager Loading for Relational Active Record
+リレーショナルアクティブレコードのためのイーガーローディングに関する変更
 ---------------------------------------------------------------
 
-- By default, a single JOIN statement will be generated and executed
-for all relations involved in the eager loading. If the primary table
-has its `LIMIT` or `OFFSET` query option set, it will be queried alone
-first, followed by another SQL statement that brings back all its related
-objects. Previsoulay in version 1.0.x, the default behavior is that
-there will be `N+1` SQL statements if an eager loading involves
-`N` `HAS_MANY` or `MANY_MANY` relations.
+- デフォルトでは、イーガーローディングされる全てのリレーションについて、単一の JOIN 文が生成され、実行されます。
+プライマリテーブルに `LIMIT` や `OFFSET` クエリオプションがセットされている場合は、最初にプライマリテーブルだけが単独で検索され、その後で、関連する全てのオブジェクトを取得するために、もう一つの SQL 文が発行されます。
+以前のバージョン 1.0.x では、デフォルトの振舞いは、イーガーローディングが `N` 個の `HAS_MANY` または `MANY_MANY` リレーションを含む場合は、`N+1` 個の SQL 文が生成されていました。
 
 
-Changes Related with Table Alias in Relational Active Record
+リレーショナルアクティブレコードのテーブルエイリアスに関する変更
 ------------------------------------------------------------
 
-- The default alias for a relational table is now the same as the corresponding
-relation name. Previously in version 1.0.x, by default Yii would automatically
-generate a table alias for each relational table, and we had to use the prefix
-`??.` to refer to this automatically generated alias.
+- リレーショナルテーブルのデフォルトのエイリアスは、対応するリレーション名と同じものに変更されました。
+以前のバージョン 1.0.x では、デフォルトでは Yii は自動的にテーブルエイリアスを生成し、この自動生成されたエイリアスを参照するためにプレフィクスとして `??.` を使う必要がありました。
 
-Changes Related with Tabular Input
+- AR クエリにおけるプライマリテーブルのエイリアス名は `t` 固定となりました。
+以前のバージョン 1.0.x ではテーブル名と同じでした。
+これにより、もし既存の AR クエリコードがコラムプレフィクスとしてテーブル名を使用していた場合に互換性がなくなります。その解決はプレフィクスを `t.` で置き換えることです。
+
+
+表形式入力に関する変更
+-----------------------
+
+- 属性の名前としては、`Field[$i]` という表記は有効ではなくなりました。
+`[$i]Field` のように表記しなければなりません。
+これは、配列タイプのフィールド (例えば `[$i]Field[$index]`) をサポートするためです。
+
+
+その他の変更
 ----------------------------------
 
-- For attribute names, using `Field[$i]` is not valid anymore, they should look
-like `[$i]Field` in order to support array-typed fields (e.g. `[$i]Field[$index]`).
+- [CActiveRecord] コンストラクタのシグナチュアが変更されました。
+最初のパラメータ(属性のリスト)は削除されました。
 
-<div class="revision">$Id: upgrade.txt 1442 2009-10-10 21:55:19Z qiang.xue $</div>
+<div class="revision">$Id$</div>

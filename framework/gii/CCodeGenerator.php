@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2011 Yii Software LLC
+ * @copyright 2008-2013 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -18,8 +18,10 @@
  * while the latter should return a success message to be displayed when
  * code files are successfully generated.
  *
+ * @property string $pageTitle The page title.
+ * @property string $viewPath The view path of the generator.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id$
  * @package system.gii
  * @since 1.1.2
  */
@@ -73,6 +75,7 @@ class CCodeGenerator extends CController
 	/**
 	 * The code preview action.
 	 * This action shows up the specified generated code.
+	 * @throws CHttpException if unable to find code generated.
 	 */
 	public function actionCode()
 	{
@@ -90,6 +93,7 @@ class CCodeGenerator extends CController
 	/**
 	 * The code diff action.
 	 * This action shows up the difference between the newly generated code and the corresponding existing code.
+	 * @throws CHttpException if unable to find code generated.
 	 */
 	public function actionDiff()
 	{
@@ -99,9 +103,9 @@ class CCodeGenerator extends CController
 		if(isset($_GET['id']) && isset($model->files[$_GET['id']]))
 		{
 			$file=$model->files[$_GET['id']];
-			if(!in_array($file->type,array('php', 'txt','js','css')))
+			if(!in_array($file->type,array('php', 'txt','js','css','sql')))
 				$diff=false;
-			else if($file->operation===CCodeFile::OP_OVERWRITE)
+			elseif($file->operation===CCodeFile::OP_OVERWRITE)
 				$diff=TextDiff::compare(file_get_contents($file->path), $file->content);
 			else
 				$diff='';

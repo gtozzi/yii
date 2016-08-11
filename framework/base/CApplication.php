@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2011 Yii Software LLC
+ * @copyright 2008-2013 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -30,12 +30,19 @@
  *   application messages. This application component is dynamically loaded when needed.</li>
  * <li>{@link getCoreMessages coreMessages}: provides the message source for translating
  *   Yii framework messages. This application component is dynamically loaded when needed.</li>
+ * <li>{@link getUrlManager urlManager}: provides URL construction as well as parsing functionality.
+ *   This application component is dynamically loaded when needed.</li>
+ * <li>{@link getRequest request}: represents the current HTTP request by encapsulating
+ *   the $_SERVER variable and managing cookies sent from and sent to the user.
+ *   This application component is dynamically loaded when needed.</li>
+ * <li>{@link getFormat format}: provides a set of commonly used data formatting methods.
+ *   This application component is dynamically loaded when needed.</li>
  * </ul>
  *
  * CApplication will undergo the following lifecycles when processing a user request:
  * <ol>
  * <li>load application configuration;</li>
- * <li>set up class autoloader and error handling;</li>
+ * <li>set up error handling;</li>
  * <li>load static application components;</li>
  * <li>{@link onBeginRequest}: preprocess the user request;</li>
  * <li>{@link processRequest}: process the user request;</li>
@@ -45,30 +52,36 @@
  * Starting from lifecycle 3, if a PHP error or an uncaught exception occurs,
  * the application will switch to its error handling logic and jump to step 6 afterwards.
  *
+ * @property string $id The unique identifier for the application.
+ * @property string $basePath The root directory of the application. Defaults to 'protected'.
+ * @property string $runtimePath The directory that stores runtime files. Defaults to 'protected/runtime'.
+ * @property string $extensionPath The directory that contains all extensions. Defaults to the 'extensions' directory under 'protected'.
+ * @property string $language The language that the user is using and the application should be targeted to.
+ * Defaults to the {@link sourceLanguage source language}.
+ * @property string $timeZone The time zone used by this application.
+ * @property CLocale $locale The locale instance.
+ * @property string $localeDataPath The directory that contains the locale data. It defaults to 'framework/i18n/data'.
+ * @property CNumberFormatter $numberFormatter The locale-dependent number formatter.
+ * The current {@link getLocale application locale} will be used.
+ * @property CDateFormatter $dateFormatter The locale-dependent date formatter.
+ * The current {@link getLocale application locale} will be used.
+ * @property CDbConnection $db The database connection.
+ * @property CErrorHandler $errorHandler The error handler application component.
+ * @property CSecurityManager $securityManager The security manager application component.
+ * @property CStatePersister $statePersister The state persister application component.
+ * @property CCache $cache The cache application component. Null if the component is not enabled.
+ * @property CPhpMessageSource $coreMessages The core message translations.
+ * @property CMessageSource $messages The application message translations.
+ * @property CHttpRequest $request The request component.
+ * @property CFormatter $format The formatter component.
+ * @property CUrlManager $urlManager The URL manager component.
+ * @property CController $controller The currently active controller. Null is returned in this base class.
+ * @property string $baseUrl The relative URL for the application.
+ * @property string $homeUrl The homepage URL.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id$
  * @package system.base
  * @since 1.0
- *
- * @property string $basePath Returns the root path of the application.
- * @property CCache $cache Returns the cache component.
- * @property CPhpMessageSource $coreMessages Returns the core message translations.
- * @property CDateFormatter $dateFormatter Returns the locale-dependent date formatter.
- * @property CDbConnection $db Returns the database connection component.
- * @property CErrorHandler $errorHandler Returns the error handler component.
- * @property string $extensionPath Returns the root directory that holds all third-party extensions.
- * @property string $id Returns the unique identifier for the application.
- * @property string $language Returns the language that the user is using and the application should be targeted to.
- * @property CLocale $locale Returns the locale instance.
- * @property string $localeDataPath Returns the directory that contains the locale data.
- * @property CMessageSource $messages Returns the application message translations component.
- * @property CNumberFormatter $numberFormatter The locale-dependent number formatter.
- * @property CHttpRequest $request Returns the request component.
- * @property string $runtimePath Returns the directory that stores runtime files.
- * @property CSecurityManager $securityManager Returns the security manager component.
- * @property CStatePersister $statePersister Returns the state persister component.
- * @property string $timeZone Returns the time zone used by this application.
- * @property CUrlManager $urlManager Returns the URL manager component.
  */
 abstract class CApplication extends CModule
 {
@@ -85,6 +98,10 @@ abstract class CApplication extends CModule
 	 * the language that the messages and view files are in. Defaults to 'en_us' (US English).
 	 */
 	public $sourceLanguage='en_us';
+	/**
+	 * @var string the class used to get locale data. Defaults to 'CLocale'.
+	 */
+	public $localeClass='CLocale';
 
 	private $_id;
 	private $_basePath;
@@ -94,6 +111,7 @@ abstract class CApplication extends CModule
 	private $_stateChanged;
 	private $_ended=false;
 	private $_language;
+	private $_homeUrl;
 
 	/**
 	 * Processes the request.
@@ -127,7 +145,18 @@ abstract class CApplication extends CModule
 			$this->setBasePath('protected');
 		Yii::setPathOfAlias('application',$this->getBasePath());
 		Yii::setPathOfAlias('webroot',dirname($_SERVER['SCRIPT_FILENAME']));
-		Yii::setPathOfAlias('ext',$this->getBasePath().DIRECTORY_SEPARATOR.'extensions');
+		if(isset($config['extensionPath']))
+		{
+			$this->setExtensionPath($config['extensionPath']);
+			unset($config['extensionPath']);
+		}
+		else
+			Yii::setPathOfAlias('ext',$this->getBasePath().DIRECTORY_SEPARATOR.'extensions');
+		if(isset($config['aliases']))
+		{
+			$this->setAliases($config['aliases']);
+			unset($config['aliases']);
+		}
 
 		$this->preinit();
 
@@ -152,6 +181,7 @@ abstract class CApplication extends CModule
 	{
 		if($this->hasEventHandler('onBeginRequest'))
 			$this->onBeginRequest(new CEvent($this));
+		register_shutdown_function(array($this,'end'),0,false);
 		$this->processRequest();
 		if($this->hasEventHandler('onEndRequest'))
 			$this->onEndRequest(new CEvent($this));
@@ -165,7 +195,7 @@ abstract class CApplication extends CModule
 	 * @param boolean $exit whether to exit the current request. This parameter has been available since version 1.1.5.
 	 * It defaults to true, meaning the PHP's exit() function will be called at the end of this method.
 	 */
-	public function end($status=0, $exit=true)
+	public function end($status=0,$exit=true)
 	{
 		if($this->hasEventHandler('onEndRequest'))
 			$this->onEndRequest(new CEvent($this));
@@ -278,6 +308,7 @@ abstract class CApplication extends CModule
 	/**
 	 * Sets the root directory that holds all third-party extensions.
 	 * @param string $path the directory that contains all third-party extensions.
+	 * @throws CException if the directory does not exist
 	 */
 	public function setExtensionPath($path)
 	{
@@ -318,7 +349,6 @@ abstract class CApplication extends CModule
 	 * This is a simple wrapper of PHP function date_default_timezone_get().
 	 * @return string the time zone used by this application.
 	 * @see http://php.net/manual/en/function.date-default-timezone-get.php
-	 * @since 1.0.9
 	 */
 	public function getTimeZone()
 	{
@@ -330,7 +360,6 @@ abstract class CApplication extends CModule
 	 * This is a simple wrapper of PHP function date_default_timezone_set().
 	 * @param string $value the time zone used by this application.
 	 * @see http://php.net/manual/en/function.date-default-timezone-set.php
-	 * @since 1.0.9
 	 */
 	public function setTimeZone($value)
 	{
@@ -371,11 +400,11 @@ abstract class CApplication extends CModule
 	/**
 	 * Returns the locale instance.
 	 * @param string $localeID the locale ID (e.g. en_US). If null, the {@link getLanguage application language ID} will be used.
-	 * @return CLocale the locale instance
+	 * @return an instance of CLocale
 	 */
 	public function getLocale($localeID=null)
 	{
-		return CLocale::getInstance($localeID===null?$this->getLanguage():$localeID);
+		return call_user_func_array(array($this->localeClass, 'getInstance'),array($localeID===null?$this->getLanguage():$localeID));
 	}
 
 	/**
@@ -385,7 +414,10 @@ abstract class CApplication extends CModule
 	 */
 	public function getLocaleDataPath()
 	{
-		return CLocale::$dataPath===null ? Yii::getPathOfAlias('system.i18n.data') : CLocale::$dataPath;
+		$vars=get_class_vars($this->localeClass);
+		if(empty($vars['dataPath']))
+			return Yii::getPathOfAlias('system.i18n.data');
+		return $vars['dataPath'];
 	}
 
 	/**
@@ -395,7 +427,8 @@ abstract class CApplication extends CModule
 	 */
 	public function setLocaleDataPath($value)
 	{
-		CLocale::$dataPath=$value;
+		$property=new ReflectionProperty($this->localeClass,'dataPath');
+		$property->setValue($value);
 	}
 
 	/**
@@ -499,6 +532,89 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the formatter component.
+	 * @return CFormatter the formatter component
+	 */
+	public function getFormat()
+	{
+		return $this->getComponent('format');
+	}
+
+	/**
+	 * @return CController the currently active controller. Null is returned in this base class.
+	 * @since 1.1.8
+	 */
+	public function getController()
+	{
+		return null;
+	}
+
+	/**
+	 * Creates a relative URL based on the given controller and action information.
+	 * @param string $route the URL route. This should be in the format of 'ControllerID/ActionID'.
+	 * @param array $params additional GET parameters (name=>value). Both the name and value will be URL-encoded.
+	 * @param string $ampersand the token separating name-value pairs in the URL.
+	 * @return string the constructed URL
+	 */
+	public function createUrl($route,$params=array(),$ampersand='&')
+	{
+		return $this->getUrlManager()->createUrl($route,$params,$ampersand);
+	}
+
+	/**
+	 * Creates an absolute URL based on the given controller and action information.
+	 * @param string $route the URL route. This should be in the format of 'ControllerID/ActionID'.
+	 * @param array $params additional GET parameters (name=>value). Both the name and value will be URL-encoded.
+	 * @param string $schema schema to use (e.g. http, https). If empty, the schema used for the current request will be used.
+	 * @param string $ampersand the token separating name-value pairs in the URL.
+	 * @return string the constructed URL
+	 */
+	public function createAbsoluteUrl($route,$params=array(),$schema='',$ampersand='&')
+	{
+		$url=$this->createUrl($route,$params,$ampersand);
+		if(strpos($url,'http')===0)
+			return $url;
+		else
+			return $this->getRequest()->getHostInfo($schema).$url;
+	}
+
+	/**
+	 * Returns the relative URL for the application.
+	 * This is a shortcut method to {@link CHttpRequest::getBaseUrl()}.
+	 * @param boolean $absolute whether to return an absolute URL. Defaults to false, meaning returning a relative one.
+	 * @return string the relative URL for the application
+	 * @see CHttpRequest::getBaseUrl()
+	 */
+	public function getBaseUrl($absolute=false)
+	{
+		return $this->getRequest()->getBaseUrl($absolute);
+	}
+
+	/**
+	 * @return string the homepage URL
+	 */
+	public function getHomeUrl()
+	{
+		if($this->_homeUrl===null)
+		{
+			if($this->getUrlManager()->showScriptName)
+				return $this->getRequest()->getScriptUrl();
+			else
+				return $this->getRequest()->getBaseUrl().'/';
+		}
+		else
+			return $this->_homeUrl;
+	}
+
+	/**
+	 * @param string $value the homepage URL
+	 */
+	public function setHomeUrl($value)
+	{
+		$this->_homeUrl=$value;
+	}
+
+	/**
 	 * Returns a global value.
 	 *
 	 * A global value is one that is persistent across users sessions and requests.
@@ -541,7 +657,7 @@ abstract class CApplication extends CModule
 				$this->_stateChanged=true;
 			}
 		}
-		else if(!isset($this->_globalState[$key]) || $this->_globalState[$key]!==$value)
+		elseif(!isset($this->_globalState[$key]) || $this->_globalState[$key]!==$value)
 		{
 			$this->_globalState[$key]=$value;
 			$this->_stateChanged=true;
@@ -617,7 +733,10 @@ abstract class CApplication extends CModule
 		// php <5.2 doesn't support string conversion auto-magically
 		$message=$exception->__toString();
 		if(isset($_SERVER['REQUEST_URI']))
-			$message.=' REQUEST_URI='.$_SERVER['REQUEST_URI'];
+			$message.="\nREQUEST_URI=".$_SERVER['REQUEST_URI'];
+		if(isset($_SERVER['HTTP_REFERER']))
+			$message.="\nHTTP_REFERER=".$_SERVER['HTTP_REFERER'];
+		$message.="\n---";
 		Yii::log($message,CLogger::LEVEL_ERROR,$category);
 
 		try
@@ -836,7 +955,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
-	 * Initializes the class autoloader and error handlers.
+	 * Initializes the error handlers.
 	 */
 	protected function initSystemHandlers()
 	{

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2011 Yii Software LLC
+ * @copyright 2008-2013 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -25,7 +25,6 @@
  * accessed with variable <code>$content</code>.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id$
  * @package system.web.widgets
  * @since 1.0
  */
@@ -42,13 +41,12 @@ class CContentDecorator extends COutputProcessor
 	public $view;
 	/**
 	 * @var array the variables (name=>value) to be extracted and made available in the decorative view.
-	 * @since 1.0.4
 	 */
 	public $data=array();
 
 	/**
 	 * Processes the captured output.
-     * This method decorates the output with the specified {@link view}.
+	 * This method decorates the output with the specified {@link view}.
 	 * @param string $output the captured output to be processed
 	 */
 	public function processOutput($output)
