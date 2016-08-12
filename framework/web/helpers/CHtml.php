@@ -585,7 +585,7 @@ class CHtml
 			$htmlOptions['for']=$for;
 		if(isset($htmlOptions['required']) || isset($htmlOptions['together']) )
 		{
-			if($htmlOptions['required'])
+			if(isset($htmlOptions['required']))
 			{
 				if(isset($htmlOptions['class']))
 					$htmlOptions['class'].=' '.self::$requiredCss;
@@ -594,7 +594,7 @@ class CHtml
 				$label=self::$beforeRequiredLabel.$label.self::$afterRequiredLabel;
 			    unset($htmlOptions['required']);
 			}
-			if($htmlOptions['together'])
+			if(isset($htmlOptions['together']))
 			{
 				if(isset($htmlOptions['class']))
 					$htmlOptions['class'].=' '.self::$togetherCss;
