@@ -611,6 +611,10 @@ class CComponent
 			extract($_data_);
 			return eval('return '.$_expression_.';');
 		}
+		elseif( is_bool($_expression_) )
+		{
+			return $_expression_;
+		}
 		else
 		{
 			$_data_[]=$this;
