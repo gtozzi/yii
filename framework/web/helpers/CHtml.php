@@ -583,25 +583,31 @@ class CHtml
 			unset($htmlOptions['for']);
 		else
 			$htmlOptions['for']=$for;
-		if(isset($htmlOptions['required']) || isset($htmlOptions['together']) )
+
+		$required = isset($htmlOptions['required']) && $htmlOptions['required'];
+		$together = isset($htmlOptions['together']) && $htmlOptions['together'];
+		if( isset($htmlOptions['required']) )
+			unset($htmlOptions['required']);
+		if( isset($htmlOptions['together']) )
+			unset($htmlOptions['together']);
+
+		if( $required || $together )
 		{
-			if(isset($htmlOptions['required']))
+			if( $required )
 			{
 				if(isset($htmlOptions['class']))
 					$htmlOptions['class'].=' '.self::$requiredCss;
 				else
 					$htmlOptions['class']=self::$requiredCss;
 				$label=self::$beforeRequiredLabel.$label.self::$afterRequiredLabel;
-			    unset($htmlOptions['required']);
 			}
-			if(isset($htmlOptions['together']))
+			if( $together )
 			{
 				if(isset($htmlOptions['class']))
 					$htmlOptions['class'].=' '.self::$togetherCss;
 				else
 					$htmlOptions['class']=self::$togetherCss;
 				$label=self::$beforeTogetherLabel.$label.self::$afterTogetherLabel;
-			    unset($htmlOptions['together']);
 			}
 		}
 		return self::tag('label',$htmlOptions,$label);
@@ -1522,9 +1528,9 @@ EOD;
 	{
 		$realAttribute=$attribute;
 		self::resolveName($model,$attribute); // strip off square brackets if any
-		if (!isset($htmlOptions['required']))
+		if( ! isset($htmlOptions['required']) )
 			$htmlOptions['required']=$model->isAttributeRequired($attribute);
-		if (!isset($htmlOptions['together']))
+		if( ! isset($htmlOptions['together']) )
 			$htmlOptions['together']=$model->isAttributeRequiredTogether($attribute);
 		return self::activeLabel($model,$realAttribute,$htmlOptions);
 	}
