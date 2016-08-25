@@ -609,6 +609,7 @@ class CComponent
 		if(is_string($_expression_))
 		{
 			extract($_data_);
+			Yii::trace('eval code:"'.$_expression_.'"', 'eval');
 			return eval('return '.$_expression_.';');
 		}
 		elseif( is_bool($_expression_) )
