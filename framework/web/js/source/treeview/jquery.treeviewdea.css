@@ -121,6 +121,7 @@
 
 .filetree span.file_att     { background: url(images/fam/wrench.png) 0 0 no-repeat; }
 .filetree span.file_att_tick { background: url(images/fam/wrench_tick.png) 0 0 no-repeat; }
+.filetree span.file_att_chkl { background: url(images/fam/wrench_orange.png) 0 0 no-repeat; }
 .filetree span.file_check   { background: url(images/fam/table.png) 0 0 no-repeat; }
 .filetree span.file_tick    { background: url(images/fam/tick.png) 0 0 no-repeat; }
 .filetree span.file_allo    { background: url(images/fam/user.png) 0 0 no-repeat; }
