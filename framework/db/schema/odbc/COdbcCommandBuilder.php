@@ -505,8 +505,12 @@ class COdbcCommandBuilder extends CDbCommandBuilder
 	 * @param string $param: The param name code
 	 * @return void: Values are passed byRef and modified realtime
 	 * @since 1.1.7
+	 * @deprecated No longer needed using FreeTDS 7.2?
 	 */
 	protected function castBindParameter(&$value, &$param) {
+		// No longer needed using FreeTDS 7.2?
+
+		/*
 		if( is_object($value) ) 
 		{
 			$param = $param;
@@ -538,6 +542,7 @@ class COdbcCommandBuilder extends CDbCommandBuilder
 				throw new Exception('Unknown data type: ' . gettype($value));
 			}
 		}
+		*/
 	}
 
 	/**
