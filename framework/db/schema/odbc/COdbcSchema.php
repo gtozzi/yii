@@ -24,6 +24,8 @@ class COdbcSchema extends CDbSchema
 {
 	const DEFAULT_SCHEMA='dbo';
 
+	const CACHE_EXPIRE = 600;
+
 	/**
 	 * @var array the abstract column types mapped to physical column types.
 	 * @since 1.1.7
@@ -202,8 +204,8 @@ class COdbcSchema extends CDbSchema
 		   	    AND k.table_name LIKE :table
 				AND k.table_schema LIKE :schema
 EOD;
-		$dependency = new CExpressionDependency("Yii::app()->params['db_version']");
-		$command = $this->getDbConnection()->cache(600, $dependency)->createCommand($sql);
+		$command = $this->getDbConnection()->cache(self::CACHE_EXPIRE,
+			$this->__getCacheDep())->createCommand($sql);
 		$command->bindValue(':table', $table->name);
 		$command->bindValue(':schema', $table->schemaName);
 		$primary=$command->queryColumn();
@@ -260,8 +262,8 @@ EOD;
 		   AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION
 		WHERE KCU1.TABLE_NAME LIKE :table
 EOD;
-		$dependency = new CExpressionDependency("Yii::app()->params['db_version']");
-		$command = $this->getDbConnection()->cache(600, $dependency)->createCommand($sql);
+		$command = $this->getDbConnection()->cache(self::CACHE_EXPIRE,
+			$this->__getCacheDep())->createCommand($sql);
 		$command->bindValue(':table', $table->name);
 		$fkeys=array();
 		foreach($command->queryAll() as $info)
@@ -288,7 +290,9 @@ EOD;
 			$where[]="TABLE_SCHEMA='".$table->schemaName."'";
 		$sql="SELECT *, columnproperty(object_id(table_schema+'.'+table_name), column_name, 'IsIdentity') as IsIdentity ".
 			 "FROM INFORMATION_SCHEMA.COLUMNS WHERE ".join(' AND ',$where);
-		if (($columns=$this->getDbConnection()->createCommand($sql)->queryAll())===array())
+		$dependency = new CExpressionDependency("Yii::app()->params['db_version']");
+		if (($columns=$this->getDbConnection()->cache(self::CACHE_EXPIRE,
+				$this->__getCacheDep())->createCommand($sql)->queryAll())===array())
 			return false;
 
 		foreach($columns as $column)
@@ -354,7 +358,8 @@ EOD;
 SELECT TABLE_NAME, TABLE_SCHEMA FROM [INFORMATION_SCHEMA].[TABLES]
 WHERE TABLE_SCHEMA LIKE :schema AND $condition
 EOD;
-		$command=$this->getDbConnection()->createCommand($sql);
+		$command=$this->getDbConnection()->cache(self::CACHE_EXPIRE,
+			$this->__getCacheDep())->createCommand($sql);
 		$command->bindParam(":schema", $schema);
 		$rows=$command->queryAll();
 		$names=array();
@@ -421,5 +426,12 @@ EOD;
 			. $this->quoteColumnName($column) . ' '
 			. $this->getColumnType($type);
 		return $sql;
+	}
+
+	/**
+	 * Return default cache dependency
+	 */
+	private function __getCacheDep() {
+		return new CExpressionDependency("Yii::app()->params['db_version']");
 	}
 }
