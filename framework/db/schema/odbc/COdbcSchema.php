@@ -202,7 +202,8 @@ class COdbcSchema extends CDbSchema
 		   	    AND k.table_name LIKE :table
 				AND k.table_schema LIKE :schema
 EOD;
-		$command = $this->getDbConnection()->createCommand($sql);
+		$dependency = new CExpressionDependency("Yii::app()->params['db_version']");
+		$command = $this->getDbConnection()->cache(600, $dependency)->createCommand($sql);
 		$command->bindValue(':table', $table->name);
 		$command->bindValue(':schema', $table->schemaName);
 		$primary=$command->queryColumn();
@@ -259,7 +260,8 @@ EOD;
 		   AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION
 		WHERE KCU1.TABLE_NAME LIKE :table
 EOD;
-		$command = $this->getDbConnection()->createCommand($sql);
+		$dependency = new CExpressionDependency("Yii::app()->params['db_version']");
+		$command = $this->getDbConnection()->cache(600, $dependency)->createCommand($sql);
 		$command->bindValue(':table', $table->name);
 		$fkeys=array();
 		foreach($command->queryAll() as $info)
